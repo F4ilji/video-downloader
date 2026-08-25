@@ -51,6 +51,10 @@ def extract_info(url: str) -> dict[str, Any]:
         "quiet": True,
         "no_warnings": True,
         "skip_download": True,
+        "extractor_args": {
+            "youtube": {},
+            "youtubepot-bgutilhttp": {"base_url": settings.pot_provider_url},
+        },
     }
     if settings.proxy:
         opts["proxy"] = settings.proxy
@@ -68,6 +72,10 @@ def download_video(
     quality: str = "best",
 ) -> str:
     opts = _default_opts(output_path, output_name, progress_hook, mode, quality)
+    opts["extractor_args"] = {
+        "youtube": {},
+        "youtubepot-bgutilhttp": {"base_url": settings.pot_provider_url},
+    }
     with yt_dlp.YoutubeDL(opts) as ydl:
         info = ydl.extract_info(url, download=True)
         if info is None:
