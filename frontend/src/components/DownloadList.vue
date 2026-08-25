@@ -7,16 +7,18 @@
         <span class="title">{{ item.title || item.filename }}</span>
         <span class="meta">
           <span v-if="item.duration">{{ formatDuration(item.duration) }}</span>
-          <span v-if="item.filename"> • {{ fileName(item.filename) }}</span>
+          <span v-if="item.filename"> &middot; {{ fileName(item.filename) }}</span>
         </span>
       </div>
       <a
         v-if="item.filename"
         :href="downloadUrl(item)"
-        class="btn"
+        class="btn-download"
         download
       >
-        ↓
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M8 2v9m0 0L5 8m3 3 3-3M3 13h10"/>
+        </svg>
       </a>
     </div>
   </div>
@@ -38,20 +40,24 @@ function fileName(path) {
 }
 
 function downloadUrl(item) {
+  if (item.filename) return `/api/download/${encodeURIComponent(fileName(item.filename))}`
   if (item.url) return item.url
-  return `/api/download/${encodeURIComponent(fileName(item.filename))}`
+  return '#'
 }
 </script>
 
 <style scoped>
 .download-list {
-  margin-top: 2rem;
+  margin-top: 3rem;
 }
 
 h2 {
-  font-size: 1.25rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
   margin-bottom: 1rem;
-  color: #ccc;
 }
 
 .item {
@@ -59,16 +65,23 @@ h2 {
   align-items: center;
   gap: 1rem;
   padding: 1rem;
-  background: #1a1a1a;
-  border-radius: 12px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: 0.75rem;
   margin-bottom: 0.5rem;
+  transition: all 150ms ease-out;
+}
+
+.item:hover {
+  border-color: var(--accent-soft-border);
 }
 
 .thumb {
-  width: 120px;
-  height: 68px;
+  width: 112px;
+  height: 64px;
   object-fit: cover;
-  border-radius: 8px;
+  border-radius: 0.5rem;
+  flex-shrink: 0;
 }
 
 .info {
@@ -79,33 +92,36 @@ h2 {
 .title {
   display: block;
   font-weight: 500;
+  font-size: 0.9375rem;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  color: var(--text-primary);
 }
 
 .meta {
   display: block;
-  font-size: 0.875rem;
-  color: #888;
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
   margin-top: 0.25rem;
 }
 
-.btn {
-  width: 40px;
-  height: 40px;
+.btn-download {
+  width: 36px;
+  height: 36px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #16a34a;
-  color: #fff;
+  background: var(--accent-soft-bg);
+  color: var(--accent-hover);
   text-decoration: none;
-  border-radius: 8px;
-  font-size: 1.25rem;
+  border-radius: 0.5rem;
   flex-shrink: 0;
+  transition: all 150ms ease-out;
 }
 
-.btn:hover {
-  background: #15803d;
+.btn-download:hover {
+  background: var(--accent);
+  color: var(--bg-base);
 }
 </style>
