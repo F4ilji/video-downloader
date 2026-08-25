@@ -71,13 +71,13 @@ def _update_db_status(
 
 
 @celery_app.task
-def download_video_task(task_id: str, url: str, title: str = "unknown") -> dict:
+def download_video_task(task_id: str, url: str, title: str = "unknown", mode: str = "video", quality: str = "best") -> dict:
     from src.services.downloader import download_video
 
     output_name = sanitize_filename(title)
     try:
         hook = _progress_hook(task_id)
-        filename = download_video(url, settings.downloads_path, progress_hook=hook, output_name=output_name)
+        filename = download_video(url, settings.downloads_path, progress_hook=hook, output_name=output_name, mode=mode, quality=quality)
         _update_db_status(task_id, DownloadStatus.completed, filename=filename)
         return {"task_id": task_id, "status": "completed", "filename": filename}
     except Exception as exc:

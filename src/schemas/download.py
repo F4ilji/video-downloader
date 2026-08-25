@@ -1,13 +1,28 @@
 import uuid
 from datetime import datetime
+from enum import Enum
 
 from pydantic import BaseModel, ConfigDict, HttpUrl
 
 from src.models.download import DownloadStatus
 
 
+class DownloadMode(str, Enum):
+    video = "video"
+    audio = "audio"
+
+
+class VideoQuality(str, Enum):
+    best = "best"
+    high = "high"
+    medium = "medium"
+    low = "low"
+
+
 class DownloadRequest(BaseModel):
     url: HttpUrl
+    mode: DownloadMode = DownloadMode.video
+    quality: VideoQuality = VideoQuality.best
 
 
 class DownloadResponse(BaseModel):

@@ -13,7 +13,7 @@ from src.core.config import settings
 from src.core.database import get_db
 from src.core.utils import sanitize_filename
 from src.models.download import DownloadTask
-from src.schemas.download import DownloadRequest, DownloadResponse, TaskStatus
+from src.schemas.download import DownloadMode, DownloadRequest, DownloadResponse, TaskStatus, VideoQuality
 from src.services.downloader import extract_info
 
 router = APIRouter()
@@ -44,7 +44,7 @@ async def create_download(
     title = sanitize_filename(info.get("title", "unknown"))
 
     from src.tasks.download import download_video_task
-    celery_result = download_video_task.delay(str(task_id), url, title)
+    celery_result = download_video_task.delay(str(task_id), url, title, req.mode.value, req.quality.value)
 
     task = DownloadTask(
         id=task_id,

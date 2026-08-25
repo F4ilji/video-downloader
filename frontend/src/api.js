@@ -1,10 +1,10 @@
 const API_BASE = '/api'
 
-export async function downloadVideo(url) {
+export async function downloadVideo(url, options = {}) {
   const res = await fetch(`${API_BASE}/download`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ url }),
+    body: JSON.stringify({ url, ...options }),
   })
   if (!res.ok) {
     const err = await res.json()
