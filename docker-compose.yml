@@ -1,0 +1,67 @@
+services:
+  frontend:
+    build: ./frontend
+    ports:
+      - "80:80"
+    volumes:
+      - ./downloads:/downloads
+    depends_on:
+      - api
+
+  api:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./downloads:/downloads
+    depends_on:
+      - redis
+      - postgres
+    environment:
+      - APP_DATABASE_URL=postgresql+asyncpg://postgres:postgres@postgres:5432/video_downloader
+      - APP_REDIS_URL=redis://redis:6379/0
+      - APP_DOWNLOADS_PATH=/downloads
+      - APP_PROXY=socks5://host.docker.internal:12334
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
+
+  worker:
+    build: .
+    command: celery -A src.tasks.celery_app worker --loglevel=info --concurrency=2
+    volumes:
+      - ./downloads:/downloads
+    depends_on:
+      - redis
+      - postgres
+    environment:
+      - APP_DATABASE_URL=postgresql+asyncpg://postgres:postgres@postgres:5432/video_downloader
+      - APP_REDIS_URL=redis://redis:6379/0
+      - APP_DOWNLOADS_PATH=/downloads
+      - APP_PROXY=socks5://host.docker.internal:12334
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6380:6379"
+
+  postgres:
+    image: postgres:16-alpine
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: video_downloader
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+volumes:
+  pgdata:
