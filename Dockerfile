@@ -4,7 +4,10 @@ RUN apt-get update && \
     apt-get install -y --no-install-recommends \
         ffmpeg \
         libmagic1 \
-    && rm -rf /var/lib/apt/lists/*
+        curl \
+    && curl -fsSL https://deb.nodesource.com/setup_22.x | bash - && \
+    apt-get install -y --no-install-recommends nodejs && \
+    rm -rf /var/lib/apt/lists/*
 
 WORKDIR /code
 

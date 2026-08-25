@@ -16,3 +16,4 @@ downloads/
 .ruff_cache/
 .pytest_cache/
 .opencode/
+cookies.txt
