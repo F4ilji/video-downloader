@@ -8,8 +8,9 @@ class Settings(BaseSettings):
     redis_url: str = "redis://localhost:6379/0"
     downloads_path: str = "/downloads"
     max_concurrent_downloads: int = 4
-    yt_dlp_cookies_path: str | None = None
     proxy: str | None = None
+    yt_client: str = "mweb"
+    pot_provider_url: str = "http://pot-provider:4416"
 
     @property
     def celery_broker_url(self) -> str:

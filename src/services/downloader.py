@@ -1,5 +1,4 @@
 from collections.abc import Callable
-from pathlib import Path
 from typing import Any
 
 import yt_dlp
@@ -37,25 +36,24 @@ def _default_opts(
         "retries": 10,
         "fragment_retries": 10,
         "concurrent_fragment_downloads": 16,
-        "js_runtimes": {"node": {}},
     }
     if merge_output:
         opts["merge_output_format"] = merge_output
     if settings.proxy:
         opts["proxy"] = settings.proxy
-    if settings.yt_dlp_cookies_path and Path(settings.yt_dlp_cookies_path).exists():
-        opts["cookiefile"] = settings.yt_dlp_cookies_path
     if progress_hook:
         opts["progress_hooks"] = [progress_hook]
     return opts
 
 
 def extract_info(url: str) -> dict[str, Any]:
-    opts: dict[str, Any] = {"quiet": True, "no_warnings": True, "skip_download": True, "js_runtimes": {"node": {}}}
+    opts: dict[str, Any] = {
+        "quiet": True,
+        "no_warnings": True,
+        "skip_download": True,
+    }
     if settings.proxy:
         opts["proxy"] = settings.proxy
-    if settings.yt_dlp_cookies_path and Path(settings.yt_dlp_cookies_path).exists():
-        opts["cookiefile"] = settings.yt_dlp_cookies_path
     with yt_dlp.YoutubeDL(opts) as ydl:
         info = ydl.extract_info(url, download=False)
         return ydl.sanitize_info(info)  # type: ignore[no-any-return]

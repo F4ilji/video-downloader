@@ -78,6 +78,10 @@ def download_video_task(task_id: str, url: str, title: str = "unknown", mode: st
     try:
         hook = _progress_hook(task_id)
         filename = download_video(url, settings.downloads_path, progress_hook=hook, output_name=output_name, mode=mode, quality=quality)
+        redis_client.hset(
+            f"task:{task_id}:progress",
+            mapping={"status": "completed", "percent": "100.0", "filename": filename},
+        )
         _update_db_status(task_id, DownloadStatus.completed, filename=filename)
         return {"task_id": task_id, "status": "completed", "filename": filename}
     except Exception as exc:

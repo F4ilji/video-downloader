@@ -14,18 +14,17 @@ services:
       - "8000:8000"
     volumes:
       - ./downloads:/downloads
-      - ./cookies.txt:/cookies.txt
     depends_on:
       - redis
       - postgres
+      - xray
+      - pot-provider
     environment:
       - APP_DATABASE_URL=postgresql+asyncpg://postgres:postgres@postgres:5432/video_downloader
       - APP_REDIS_URL=redis://redis:6379/0
       - APP_DOWNLOADS_PATH=/downloads
-      - APP_PROXY=socks5://host.docker.internal:12334
-      - APP_YT_DLP_COOKIES_PATH=/cookies.txt
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
+      - APP_PROXY=socks5://xray:10808
+      - APP_YT_CLIENT=mweb
     dns:
       - 8.8.8.8
       - 8.8.4.4
@@ -35,21 +34,32 @@ services:
     command: celery -A src.tasks.celery_app worker --loglevel=info --concurrency=2
     volumes:
       - ./downloads:/downloads
-      - ./cookies.txt:/cookies.txt
     depends_on:
       - redis
       - postgres
+      - xray
+      - pot-provider
     environment:
       - APP_DATABASE_URL=postgresql+asyncpg://postgres:postgres@postgres:5432/video_downloader
       - APP_REDIS_URL=redis://redis:6379/0
       - APP_DOWNLOADS_PATH=/downloads
-      - APP_PROXY=socks5://host.docker.internal:12334
-      - APP_YT_DLP_COOKIES_PATH=/cookies.txt
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
+      - APP_PROXY=socks5://xray:10808
+      - APP_YT_CLIENT=mweb
     dns:
       - 8.8.8.8
       - 8.8.4.4
+
+  pot-provider:
+    image: brainicism/bgutil-ytdlp-pot-provider:latest
+    ports:
+      - "4416:4416"
+    restart: unless-stopped
+
+  xray:
+    image: teddysun/xray:1.8.24
+    volumes:
+      - ./xray/config.json:/etc/xray/config.json:ro
+    restart: unless-stopped
 
   redis:
     image: redis:7-alpine
