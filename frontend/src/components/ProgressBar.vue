@@ -1,18 +1,28 @@
 <template>
   <div class="progress-bar">
-    <div class="header">
-      <span class="title">{{ title }}</span>
-      <span class="status" :class="status">{{ statusText }}</span>
-    </div>
-
-    <div class="bar">
-      <div class="fill" :style="{ width: percent + '%' }"></div>
-    </div>
-
-    <div class="info">
-      <span>{{ percent }}%</span>
-      <span v-if="speed">{{ speed }}</span>
-      <span v-if="eta">ETA: {{ eta }}</span>
+    <div class="progress-left">
+      <div class="circle">
+        <svg viewBox="0 0 44 44">
+          <circle class="track" cx="22" cy="22" :r="RADIUS" :stroke-dasharray="circumference" />
+          <circle
+            class="fill"
+            cx="22"
+            cy="22"
+            :r="RADIUS"
+            :stroke-dasharray="circumference"
+            :style="{ strokeDashoffset: dashOffset }"
+          />
+        </svg>
+        <span class="percent">{{ percent }}%</span>
+      </div>
+      <div class="details">
+        <span class="title">{{ title }}</span>
+        <div class="meta">
+          <span class="status" :class="status">{{ statusText }}</span>
+          <span v-if="speed" class="speed">{{ speed }}</span>
+          <span v-if="eta" class="eta">Осталось ~{{ eta }}</span>
+        </div>
+      </div>
     </div>
 
     <a
@@ -38,6 +48,9 @@ const props = defineProps({
 
 const emit = defineEmits(['completed'])
 
+const RADIUS = 18
+const circumference = 2 * Math.PI * RADIUS
+
 const percent = ref(0)
 const speed = ref('')
 const eta = ref('')
@@ -47,10 +60,15 @@ const error = ref('')
 const title = ref(props.task.url)
 const evtSource = ref(null)
 
+const dashOffset = computed(() => {
+  const progress = percent.value / 100
+  return circumference - progress * circumference
+})
+
 const statusText = computed(() => {
   const map = {
-    pending: 'Ожидание...',
-    downloading: 'Загрузка...',
+    pending: 'Ожидание',
+    downloading: 'Загрузка',
     completed: 'Готово',
     failed: 'Ошибка',
   }
@@ -74,6 +92,16 @@ onMounted(async () => {
       filename.value = info.filename
       error.value = info.error_message
       emit('completed', props.task)
+
+      if (info.status === 'completed' && info.filename) {
+        const name = info.filename.split('/').pop()
+        const a = document.createElement('a')
+        a.href = `/api/download/${encodeURIComponent(name)}`
+        a.download = ''
+        document.body.appendChild(a)
+        a.click()
+        document.body.removeChild(a)
+      }
       return
     }
 
@@ -90,6 +118,16 @@ onMounted(async () => {
         if (data.status === 'completed' || data.status === 'failed') {
           emit('completed', props.task)
         }
+
+        if (data.status === 'completed' && data.filename) {
+          const name = data.filename.split('/').pop()
+          const a = document.createElement('a')
+          a.href = `/api/download/${encodeURIComponent(name)}`
+          a.download = ''
+          document.body.appendChild(a)
+          a.click()
+          document.body.removeChild(a)
+        }
       },
       () => {}
     )
@@ -105,86 +143,133 @@ onUnmounted(() => {
 
 <style scoped>
 .progress-bar {
-  background: #1a1a1a;
-  border-radius: 12px;
-  padding: 1.5rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: 0.75rem;
+  padding: 1.25rem;
   margin-bottom: 1rem;
+  transition: all 150ms ease-out;
 }
 
-.header {
+.progress-left {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  margin-bottom: 1rem;
+  gap: 1rem;
+}
+
+.circle {
+  position: relative;
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+}
+
+.circle svg {
+  transform: rotate(-90deg);
+  width: 44px;
+  height: 44px;
+}
+
+.circle .track {
+  fill: none;
+  stroke: var(--bg-subtle);
+  stroke-width: 3;
+}
+
+.circle .fill {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 3;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 300ms ease-out;
+}
+
+.percent {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.5625rem;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.details {
+  flex: 1;
+  min-width: 0;
 }
 
 .title {
+  display: block;
   font-weight: 500;
+  font-size: 0.9375rem;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 70%;
+  color: var(--text-primary);
+}
+
+.meta {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 0.25rem;
 }
 
 .status {
-  font-size: 0.875rem;
-  padding: 0.25rem 0.75rem;
-  border-radius: 20px;
-  background: #333;
+  font-size: 0.75rem;
+  font-weight: 500;
+  padding: 0.125rem 0.5rem;
+  border-radius: 9999px;
+  background: var(--bg-subtle);
+  color: var(--text-secondary);
 }
 
 .status.downloading {
-  background: #1e40af;
+  background: var(--accent-soft-bg);
+  color: var(--accent-hover);
 }
 
 .status.completed {
-  background: #16a34a;
+  background: #F0FDF4;
+  color: #16A34A;
 }
 
 .status.failed {
-  background: #dc2626;
+  background: #FEF2F2;
+  color: #DC2626;
 }
 
-.bar {
-  height: 8px;
-  background: #333;
-  border-radius: 4px;
-  overflow: hidden;
-  margin-bottom: 0.75rem;
-}
-
-.fill {
-  height: 100%;
-  background: linear-gradient(90deg, #667eea, #764ba2);
-  transition: width 0.3s;
-  border-radius: 4px;
-}
-
-.info {
-  display: flex;
-  gap: 1rem;
-  font-size: 0.875rem;
-  color: #888;
+.speed,
+.eta {
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
 }
 
 .download-link {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
   margin-top: 1rem;
   padding: 0.5rem 1rem;
-  background: #16a34a;
-  color: #fff;
+  background: var(--accent-soft-bg);
+  color: var(--accent-hover);
   text-decoration: none;
-  border-radius: 8px;
-  font-size: 0.875rem;
+  border-radius: 0.5rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  transition: all 150ms ease-out;
 }
 
 .download-link:hover {
-  background: #15803d;
+  background: var(--accent);
+  color: var(--bg-base);
 }
 
 .error {
   margin-top: 0.75rem;
-  color: #ef4444;
-  font-size: 0.875rem;
+  color: #DC2626;
+  font-size: 0.8125rem;
 }
 </style>

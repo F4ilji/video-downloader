@@ -44,9 +44,8 @@ def _progress_hook(task_id: str):
             redis_client.expire(key, 3600)
         elif status == "finished":
             redis_client.hset(key, mapping={
-                "status": "completed",
+                "status": "downloading",
                 "percent": "100.0",
-                "filename": d.get("filename", ""),
             })
             redis_client.expire(key, 3600)
 

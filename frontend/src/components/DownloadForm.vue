@@ -1,6 +1,6 @@
 <template>
   <div class="download-form">
-    <form @submit.prevent="handleSubmit">
+    <form @submit.prevent>
       <input
         v-model="url"
         type="url"
@@ -8,82 +8,104 @@
         :disabled="loading"
         required
       />
-      <button type="submit" :disabled="loading || !url">
-        <span v-if="loading">Загрузка...</span>
-        <span v-else>Далее</span>
-      </button>
     </form>
     <p v-if="error" class="error">{{ error }}</p>
 
-    <div v-if="showSettings" class="modal-overlay" @click.self="showSettings = false">
-      <div class="modal">
-        <h3>Настройки скачивания</h3>
+    <div v-if="loading && !videoInfo" class="preview skeleton">
+      <div class="skeleton-thumb"></div>
+      <div class="skeleton-body">
+        <div class="skeleton-line wide"></div>
+        <div class="skeleton-line narrow"></div>
+      </div>
+      <div class="skeleton-row">
+        <div class="skeleton-check"></div>
+        <div class="skeleton-line short"></div>
+      </div>
+      <div class="skeleton-row">
+        <div class="skeleton-line tiny"></div>
+        <div class="skeleton-select"></div>
+      </div>
+      <div class="skeleton-btn"></div>
+    </div>
 
-        <div class="option-group">
-          <label>Что скачать</label>
-          <div class="radio-group">
-            <label class="radio">
-              <input type="radio" v-model="mode" value="video" />
-              <span>Видео</span>
-            </label>
-            <label class="radio">
-              <input type="radio" v-model="mode" value="audio" />
-              <span>Только аудио</span>
-            </label>
-          </div>
-        </div>
+    <div v-if="videoInfo" class="preview">
+      <img v-if="videoInfo.thumbnail" :src="videoInfo.thumbnail" class="preview-thumb" />
+      <div class="preview-body">
+        <span class="preview-title">{{ videoInfo.title }}</span>
+        <span v-if="videoInfo.duration" class="preview-duration">{{ formatDuration(videoInfo.duration) }}</span>
+      </div>
 
-        <div v-if="mode === 'video'" class="option-group">
-          <label>Качество</label>
-          <div class="radio-group">
-            <label class="radio">
-              <input type="radio" v-model="quality" value="best" />
-              <span>Лучшее</span>
-            </label>
-            <label class="radio">
-              <input type="radio" v-model="quality" value="high" />
-              <span>1080p</span>
-            </label>
-            <label class="radio">
-              <input type="radio" v-model="quality" value="medium" />
-              <span>720p</span>
-            </label>
-            <label class="radio">
-              <input type="radio" v-model="quality" value="low" />
-              <span>480p</span>
-            </label>
-          </div>
-        </div>
+      <label class="checkbox">
+        <input type="checkbox" v-model="audioOnly" />
+        <span>Только аудио</span>
+      </label>
 
-        <div class="modal-actions">
-          <button class="btn-cancel" @click="showSettings = false">Отмена</button>
-          <button class="btn-download" @click="startDownload" :disabled="loading">
-            {{ loading ? 'Скачивание...' : 'Скачать' }}
-          </button>
+      <div v-if="!audioOnly" class="quality-row">
+        <label class="select-label">Качество</label>
+        <div class="select-wrapper">
+          <select v-model="quality">
+            <option value="best">Лучшее</option>
+            <option value="high">1080p</option>
+            <option value="medium">720p</option>
+            <option value="low">480p</option>
+          </select>
         </div>
       </div>
+
+      <button
+        class="btn-download"
+        @click="startDownload"
+        :disabled="loading"
+      >
+        {{ loading ? 'Скачивание...' : 'Скачать' }}
+      </button>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue'
-import { downloadVideo } from '../api.js'
+import { ref, watch } from 'vue'
+import { getVideoInfo, downloadVideo } from '../api.js'
 
 const emit = defineEmits(['download-started'])
 
 const url = ref('')
 const loading = ref(false)
 const error = ref('')
-const showSettings = ref(false)
-const mode = ref('video')
+const videoInfo = ref(null)
+const audioOnly = ref(false)
 const quality = ref('best')
+let checkTimeout = null
 
-function handleSubmit() {
+function formatDuration(seconds) {
+  const m = Math.floor(seconds / 60)
+  const s = seconds % 60
+  return `${m}:${String(s).padStart(2, '0')}`
+}
+
+async function handleCheck() {
   if (!url.value) return
   error.value = ''
-  showSettings.value = true
+  videoInfo.value = null
+  loading.value = true
+
+  try {
+    videoInfo.value = await getVideoInfo(url.value)
+  } catch (e) {
+    error.value = e.message
+  } finally {
+    loading.value = false
+  }
 }
+
+watch(url, (val) => {
+  if (checkTimeout) clearTimeout(checkTimeout)
+  if (!val) {
+    videoInfo.value = null
+    return
+  }
+  checkTimeout = setTimeout(handleCheck, 600)
+})
 
 async function startDownload() {
   if (!url.value) return
@@ -92,12 +114,12 @@ async function startDownload() {
 
   try {
     const task = await downloadVideo(url.value, {
-      mode: mode.value,
+      mode: audioOnly.value ? 'audio' : 'video',
       quality: quality.value,
     })
     emit('download-started', task)
     url.value = ''
-    showSettings.value = false
+    videoInfo.value = null
   } catch (e) {
     error.value = e.message
   } finally {
@@ -108,149 +130,225 @@ async function startDownload() {
 
 <style scoped>
 .download-form {
-  margin-bottom: 2rem;
+  margin-bottom: 2.5rem;
 }
 
 form {
   display: flex;
-  gap: 0.5rem;
+  gap: 0.75rem;
 }
 
-input {
-  flex: 1;
-  padding: 1rem 1.5rem;
-  border: 2px solid #333;
-  border-radius: 12px;
-  background: #1a1a1a;
-  color: #fff;
-  font-size: 1rem;
-  transition: border-color 0.2s;
+input[type="url"] {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: 0.75rem;
+  background: var(--bg-base);
+  color: var(--text-primary);
+  font-size: 0.9375rem;
+  font-family: inherit;
+  transition: all 150ms ease-out;
 }
 
-input:focus {
+input[type="url"]:hover {
+  border-color: var(--border-hover);
+}
+
+input[type="url"]:focus {
   outline: none;
-  border-color: #667eea;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-focus);
 }
 
-input::placeholder {
-  color: #666;
-}
-
-button {
-  padding: 1rem 2rem;
-  border: none;
-  border-radius: 12px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: #fff;
-  font-size: 1rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: opacity 0.2s;
-}
-
-button:hover:not(:disabled) {
-  opacity: 0.9;
-}
-
-button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
+input[type="url"]::placeholder {
+  color: var(--text-muted);
 }
 
 .error {
   margin-top: 0.75rem;
-  color: #ef4444;
-  font-size: 0.875rem;
+  color: #DC2626;
+  font-size: 0.8125rem;
 }
 
-.modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.7);
+.preview {
+  margin-top: 1rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: 0.75rem;
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  transition: all 150ms ease-out;
+}
+
+.preview:hover {
+  border-color: var(--accent-soft-border);
+}
+
+.preview-thumb {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  border-radius: 0.5rem;
+}
+
+.preview-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.preview-title {
+  font-weight: 500;
+  font-size: 0.9375rem;
+  color: var(--text-primary);
+  line-height: 1.4;
+}
+
+.preview-duration {
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+}
+
+.checkbox {
   display: flex;
   align-items: center;
-  justify-content: center;
-  z-index: 100;
-}
-
-.modal {
-  background: #1a1a1a;
-  border-radius: 16px;
-  padding: 2rem;
-  width: 90%;
-  max-width: 400px;
-  border: 1px solid #333;
-}
-
-.modal h3 {
-  margin: 0 0 1.5rem;
-  font-size: 1.25rem;
-  color: #fff;
-}
-
-.option-group {
-  margin-bottom: 1.25rem;
-}
-
-.option-group label {
-  display: block;
-  font-size: 0.875rem;
-  color: #888;
-  margin-bottom: 0.5rem;
-}
-
-.radio-group {
-  display: flex;
   gap: 0.5rem;
-  flex-wrap: wrap;
+  font-size: 0.875rem;
+  color: var(--text-primary);
+  cursor: pointer;
 }
 
-.radio {
+.checkbox input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.quality-row {
   display: flex;
   align-items: center;
-  gap: 0.4rem;
-  padding: 0.5rem 1rem;
-  background: #262626;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: background 0.2s;
-  font-size: 0.9rem;
-}
-
-.radio:hover {
-  background: #333;
-}
-
-.radio input[type="radio"] {
-  display: none;
-}
-
-.radio:has(input:checked) {
-  background: #667eea;
-  color: #fff;
-}
-
-.modal-actions {
-  display: flex;
   gap: 0.75rem;
-  margin-top: 1.5rem;
 }
 
-.btn-cancel {
+.select-label {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.select-wrapper {
   flex: 1;
-  padding: 0.75rem;
-  background: #333;
-  color: #fff;
-  border-radius: 10px;
 }
 
-.btn-cancel:hover {
-  background: #444;
+.select-wrapper select {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: 0.5rem;
+  background: var(--bg-base);
+  color: var(--text-primary);
+  font-size: 0.875rem;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 150ms ease-out;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%236B7280' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  padding-right: 2rem;
+}
+
+.select-wrapper select:hover {
+  border-color: var(--border-hover);
+}
+
+.select-wrapper select:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-focus);
 }
 
 .btn-download {
-  flex: 1;
+  width: 100%;
   padding: 0.75rem;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border: none;
+  border-radius: 0.75rem;
+  background: var(--text-primary);
+  color: var(--bg-base);
+  font-size: 0.9375rem;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 150ms ease-out;
+}
+
+.btn-download:hover:not(:disabled) {
+  background: #27272A;
+}
+
+.btn-download:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0 }
+  100% { background-position: 200% 0 }
+}
+
+.skeleton > * {
+  border-radius: 0.5rem;
+  background: linear-gradient(90deg, var(--border-subtle) 25%, #f0f0f0 50%, var(--border-subtle) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+}
+
+.skeleton-thumb {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+}
+
+.skeleton-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.skeleton-line {
+  height: 14px;
+  border-radius: 4px;
+}
+
+.skeleton-line.wide { width: 80% }
+.skeleton-line.narrow { width: 40% }
+.skeleton-line.short { width: 60px }
+.skeleton-line.tiny { width: 50px }
+
+.skeleton-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.skeleton-check {
+  width: 16px;
+  height: 16px;
+  border-radius: 3px;
+}
+
+.skeleton-select {
+  flex: 1;
+  height: 36px;
+  border-radius: 0.5rem;
+}
+
+.skeleton-btn {
+  width: 100%;
+  height: 44px;
+  border-radius: 0.75rem;
 }
 </style>
