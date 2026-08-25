@@ -1,0 +1,18 @@
+FROM python:3.12-slim
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        wget \
+        gnupg \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN pip install --no-cache-dir playwright==1.52.0
+
+RUN playwright install chromium
+RUN playwright install-deps chromium
+
+WORKDIR /app
+
+COPY scripts/cookie_provider.py .
+
+CMD ["python", "cookie_provider.py"]

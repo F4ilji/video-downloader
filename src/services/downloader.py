@@ -1,4 +1,6 @@
 from collections.abc import Callable
+from pathlib import Path
+from shutil import copy2
 from typing import Any
 
 import yt_dlp
@@ -11,6 +13,16 @@ QUALITY_FORMATS = {
     "medium": "bestvideo[height<=720][ext=mp4]+bestaudio[ext=m4a]/best[height<=720][ext=mp4]/best",
     "low": "bestvideo[height<=480][ext=mp4]+bestaudio[ext=m4a]/best[height<=480][ext=mp4]/best",
 }
+
+_COOKIES_COPY_PATH = "/tmp/cookies.txt"
+
+
+def _get_cookies_path() -> str | None:
+    src = settings.yt_dlp_cookies_path
+    if not src or not Path(src).exists():
+        return None
+    copy2(src, _COOKIES_COPY_PATH)
+    return _COOKIES_COPY_PATH
 
 
 def _default_opts(
@@ -41,6 +53,9 @@ def _default_opts(
         opts["merge_output_format"] = merge_output
     if settings.proxy:
         opts["proxy"] = settings.proxy
+    cookies = _get_cookies_path()
+    if cookies:
+        opts["cookiefile"] = cookies
     if progress_hook:
         opts["progress_hooks"] = [progress_hook]
     return opts
@@ -58,6 +73,9 @@ def extract_info(url: str) -> dict[str, Any]:
     }
     if settings.proxy:
         opts["proxy"] = settings.proxy
+    cookies = _get_cookies_path()
+    if cookies:
+        opts["cookiefile"] = cookies
     with yt_dlp.YoutubeDL(opts) as ydl:
         info = ydl.extract_info(url, download=False)
         return ydl.sanitize_info(info)  # type: ignore[no-any-return]
