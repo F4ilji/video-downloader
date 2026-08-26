@@ -1,5 +1,14 @@
 const API_BASE = '/api'
 
+export async function getVideoInfo(url) {
+  const res = await fetch(`${API_BASE}/video-info?url=${encodeURIComponent(url)}`)
+  if (!res.ok) {
+    const err = await res.json()
+    throw new Error(err.detail || 'Failed to get video info')
+  }
+  return res.json()
+}
+
 export async function downloadVideo(url, options = {}) {
   const res = await fetch(`${API_BASE}/download`, {
     method: 'POST',
