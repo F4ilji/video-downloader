@@ -123,6 +123,7 @@ async def get_task_status(
 async def _sse_generator(task_id: uuid.UUID) -> AsyncGenerator[str, None]:
     key = f"task:{task_id}:progress"
     elapsed = 0
+    last_heartbeat = 0
 
     while elapsed < SSE_MAX_DURATION:
         data = await redis_client.hgetall(key)
@@ -143,6 +144,10 @@ async def _sse_generator(task_id: uuid.UUID) -> AsyncGenerator[str, None]:
 
         if status in ("completed", "failed"):
             return
+
+        if elapsed - last_heartbeat >= 15:
+            yield ": keepalive\n\n"
+            last_heartbeat = elapsed
 
         await asyncio.sleep(1)
         elapsed += 1

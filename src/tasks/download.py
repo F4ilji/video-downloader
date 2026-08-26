@@ -1,24 +1,11 @@
 import redis
-from celery import Celery
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 
 from src.core.config import settings
 from src.core.utils import sanitize_filename
 from src.models.download import DownloadStatus, DownloadTask
-
-celery_app = Celery("video_downloader", broker=settings.celery_broker_url)
-
-celery_app.conf.update(
-    task_serializer="json",
-    result_serializer="json",
-    accept_content=["json"],
-    timezone="UTC",
-    enable_utc=True,
-    task_track_started=True,
-    task_acks_late=True,
-    worker_prefetch_multiplier=1,
-)
+from src.tasks.celery_app import celery_app
 
 redis_client = redis.from_url(settings.redis_url, decode_responses=True)
 
@@ -45,9 +32,11 @@ def _progress_hook(task_id: str):
             })
             redis_client.expire(key, 3600)
         elif status == "finished":
+            filename = d.get("filename") or d.get("filepath") or ""
             redis_client.hset(key, mapping={
-                "status": "downloading",
+                "status": "completed",
                 "percent": "100.0",
+                "filename": filename,
             })
             redis_client.expire(key, 3600)
 
