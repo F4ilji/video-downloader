@@ -28,6 +28,23 @@ async def api_health() -> dict[str, str]:
     return {"status": "ok"}
 
 
+@router.get("/video-info")
+async def get_video_info(url: str) -> dict:
+    from urllib.parse import urlparse
+    parsed = urlparse(url)
+    if parsed.scheme not in ("http", "https") or not parsed.netloc:
+        raise HTTPException(status_code=400, detail="Invalid URL")
+    try:
+        info = await asyncio.to_thread(extract_info, url)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Failed to extract info: {e}") from e
+    return {
+        "title": info.get("title"),
+        "thumbnail": info.get("thumbnail"),
+        "duration": info.get("duration"),
+    }
+
+
 @router.post("/download", response_model=DownloadResponse)
 async def create_download(
     req: DownloadRequest,
