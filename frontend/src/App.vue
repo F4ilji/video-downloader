@@ -6,13 +6,19 @@
     </header>
 
     <main>
-      <DownloadForm @download-started="onDownloadStarted" />
-
-      <ProgressBar
-        v-if="currentTask"
-        :task="currentTask"
-        @completed="onCompleted"
-      />
+      <Transition name="morph" mode="out-in">
+        <DownloadForm
+          v-if="!currentTask"
+          key="form"
+          @download-started="onDownloadStarted"
+        />
+        <ProgressBar
+          v-else
+          key="progress"
+          :task="currentTask"
+          @completed="onCompleted"
+        />
+      </Transition>
 
       <DownloadList :downloads="downloads" />
     </main>
@@ -24,7 +30,7 @@ import { ref, onMounted } from 'vue'
 import DownloadForm from './components/DownloadForm.vue'
 import ProgressBar from './components/ProgressBar.vue'
 import DownloadList from './components/DownloadList.vue'
-import { getTaskStatus, listDownloads } from './api.js'
+import { getTaskStatus } from './api.js'
 
 const currentTask = ref(null)
 const downloads = ref([])
@@ -40,17 +46,30 @@ async function onCompleted(task) {
   localStorage.setItem('downloads', JSON.stringify(downloads.value))
 }
 
-onMounted(async () => {
-  try {
-    downloads.value = await listDownloads()
-  } catch {
-    const saved = localStorage.getItem('downloads')
-    if (saved) downloads.value = JSON.parse(saved)
-  }
+onMounted(() => {
+  const saved = localStorage.getItem('downloads')
+  if (saved) downloads.value = JSON.parse(saved)
 })
 </script>
 
 <style>
+:root {
+  --bg-base: #FFFFFF;
+  --bg-subtle: #FAFAFA;
+  --bg-card: #FFFFFF;
+  --text-primary: #09090B;
+  --text-secondary: #6B7280;
+  --text-muted: #9CA3AF;
+  --border-subtle: #E5E7EB;
+  --border-hover: #D1D5DB;
+  --accent: #38BDF8;
+  --accent-hover: #0284C7;
+  --accent-soft-bg: #F0F9FF;
+  --accent-soft-border: #E0F2FE;
+  --accent-focus: rgba(56, 189, 248, 0.3);
+  --shadow-elevation: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
 * {
   margin: 0;
   padding: 0;
@@ -58,33 +77,59 @@ onMounted(async () => {
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  background: #0f0f0f;
-  color: #fff;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif;
+  background: var(--bg-subtle);
+  color: var(--text-primary);
   min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
 }
 
 .app {
-  max-width: 800px;
+  max-width: 720px;
   margin: 0 auto;
-  padding: 2rem;
+  padding: 3rem 1.5rem;
 }
 
 header {
   text-align: center;
-  margin-bottom: 2rem;
+  margin-bottom: 3rem;
 }
 
 header h1 {
-  font-size: 2rem;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  font-size: 1.875rem;
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  color: var(--text-primary);
 }
 
 header p {
-  color: #888;
+  color: var(--text-secondary);
   margin-top: 0.5rem;
+  font-size: 0.9375rem;
+}
+
+@media (min-width: 640px) {
+  .app {
+    padding: 4rem 2rem;
+  }
+
+  header h1 {
+    font-size: 2.25rem;
+  }
+}
+
+.morph-enter-active,
+.morph-leave-active {
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.morph-enter-from {
+  opacity: 0;
+  transform: translateY(-8px) scale(0.98);
+}
+
+.morph-leave-to {
+  opacity: 0;
+  transform: translateY(8px) scale(0.98);
 }
 </style>
