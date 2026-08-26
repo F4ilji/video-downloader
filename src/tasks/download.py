@@ -33,11 +33,13 @@ def _progress_hook(task_id: str):
             total = d.get("total_bytes") or d.get("total_bytes_estimate") or 0
             downloaded = d.get("downloaded_bytes", 0)
             percent = (downloaded / total * 100) if total else 0
+            speed = d.get("_speed_str") or d.get("speed") or ""
+            eta = d.get("_eta_str") or d.get("eta") or ""
             redis_client.hset(key, mapping={
                 "status": "downloading",
                 "percent": f"{percent:.1f}",
-                "speed": d.get("_speed_str", ""),
-                "eta": d.get("_eta_str", ""),
+                "speed": speed,
+                "eta": eta,
                 "downloaded": str(downloaded),
                 "total": str(total),
             })
