@@ -1,3 +1,7 @@
+import os
+from pathlib import Path
+
+import redis
 from celery import Celery
 
 from src.core.config import settings
@@ -13,4 +17,11 @@ celery_app.conf.update(
     task_track_started=True,
     task_acks_late=True,
     worker_prefetch_multiplier=1,
-    include=["src.tasks.download"])
+    include=["src.tasks.download", "src.tasks.cleanup"],
+    beat_schedule={
+        "cleanup-downloads": {
+            "task": "src.tasks.cleanup.cleanup_downloads",
+            "schedule": 3600.0,
+        },
+    },
+)

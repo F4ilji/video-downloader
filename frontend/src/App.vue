@@ -20,7 +20,7 @@
         />
       </Transition>
 
-      <DownloadList :downloads="downloads" />
+      <DownloadList :downloads="downloads" @download-started="onDownloadStarted" />
     </main>
   </div>
 </template>

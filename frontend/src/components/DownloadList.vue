@@ -15,6 +15,7 @@
         :href="downloadUrl(item)"
         class="btn-download"
         download
+        @click.prevent="handleClick(item)"
       >
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
           <path d="M8 2v9m0 0L5 8m3 3 3-3M3 13h10"/>
@@ -25,6 +26,10 @@
 </template>
 
 <script setup>
+import { downloadVideo } from '../api.js'
+
+const emit = defineEmits(['download-started'])
+
 defineProps({
   downloads: { type: Array, default: () => [] },
 })
@@ -43,6 +48,25 @@ function downloadUrl(item) {
   if (item.filename) return `/api/download/${encodeURIComponent(fileName(item.filename))}`
   if (item.url) return item.url
   return '#'
+}
+
+async function handleClick(item) {
+  if (!item.url) return
+  try {
+    const res = await fetch(downloadUrl(item), { method: 'HEAD' })
+    if (res.ok) return
+  } catch {
+    // file missing, re-download
+  }
+  try {
+    const task = await downloadVideo(item.url, {
+      mode: item.mode || 'video',
+      quality: item.quality || 'best',
+    })
+    emit('download-started', task)
+  } catch (e) {
+    console.error('Re-download failed:', e)
+  }
 }
 </script>
 
