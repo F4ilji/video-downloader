@@ -12,6 +12,7 @@ class Settings(BaseSettings):
     yt_client: str = "mweb"
     pot_provider_url: str = "http://pot-provider:4416"
     yt_dlp_cookies_path: str | None = None
+    cors_origins: str = "*"
 
     @property
     def celery_broker_url(self) -> str:

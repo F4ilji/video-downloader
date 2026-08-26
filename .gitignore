@@ -7,6 +7,8 @@ build/
 .eggs/
 *.egg
 .env
+.env.*
+!.env.example
 .venv
 venv/
 downloads/
@@ -17,3 +19,4 @@ downloads/
 .pytest_cache/
 .opencode/
 cookies.txt
+xray/
