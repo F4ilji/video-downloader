@@ -32,12 +32,9 @@ def _progress_hook(task_id: str):
             })
             redis_client.expire(key, 3600)
         elif status == "finished":
-            raw_filename = d.get("filename") or d.get("filepath") or ""
-            filename = sanitize_filename(raw_filename) if raw_filename else ""
             redis_client.hset(key, mapping={
-                "status": "completed",
-                "percent": "100.0",
-                "filename": filename,
+                "status": "downloading",
+                "percent": "99.9",
             })
             redis_client.expire(key, 3600)
 
