@@ -77,8 +77,10 @@ const statusText = computed(() => {
 
 const downloadUrl = computed(() => {
   if (!filename.value) return ''
+  const apiKey = import.meta.env.VITE_API_KEY || ''
   const name = filename.value.split('/').pop()
-  return `/api/download/${encodeURIComponent(name)}`
+  const base = `/api/download/${encodeURIComponent(name)}`
+  return apiKey ? `${base}?api_key=${encodeURIComponent(apiKey)}` : base
 })
 
 onMounted(async () => {
@@ -95,8 +97,11 @@ onMounted(async () => {
 
       if (info.status === 'completed' && info.filename) {
         const name = info.filename.split('/').pop()
+        const apiKey = import.meta.env.VITE_API_KEY || ''
+        const base = `/api/download/${encodeURIComponent(name)}`
+        const url = apiKey ? `${base}?api_key=${encodeURIComponent(apiKey)}` : base
         const a = document.createElement('a')
-        a.href = `/api/download/${encodeURIComponent(name)}`
+        a.href = url
         a.download = ''
         document.body.appendChild(a)
         a.click()

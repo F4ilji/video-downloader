@@ -50,9 +50,10 @@ function fileName(path) {
 }
 
 function downloadUrl(item) {
-  if (item.filename) return `/api/download/${encodeURIComponent(fileName(item.filename))}`
-  if (item.url) return item.url
-  return '#'
+  const apiKey = import.meta.env.VITE_API_KEY || ''
+  const name = fileName(item.filename)
+  const base = `/api/download/${encodeURIComponent(name)}`
+  return apiKey ? `${base}?api_key=${encodeURIComponent(apiKey)}` : base
 }
 
 async function handleClick(item) {
