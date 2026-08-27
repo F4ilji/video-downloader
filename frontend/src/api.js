@@ -49,3 +49,9 @@ export async function listDownloads() {
   if (!res.ok) throw new Error('Failed to load downloads')
   return res.json()
 }
+
+export async function getActiveTasks() {
+  const res = await fetch(`${API_BASE}/tasks/active`)
+  if (!res.ok) throw new Error('Failed to load active tasks')
+  return res.json()
+}

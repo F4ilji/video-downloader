@@ -92,6 +92,40 @@ async def create_download(
     )
 
 
+@router.get("/tasks/active")
+async def list_active_tasks(
+    db: AsyncSession = Depends(get_db),  # noqa: B008
+) -> list[TaskStatus]:
+    from sqlalchemy import select
+
+    result = await db.execute(
+        select(DownloadTask).where(
+            DownloadTask.status.in_(["pending", "downloading"])
+        ).order_by(DownloadTask.created_at.desc())
+    )
+    tasks = result.scalars().all()
+
+    out = []
+    for t in tasks:
+        key = f"task:{t.id}:progress"
+        data = await redis_client.hgetall(key)
+        out.append(TaskStatus(
+            task_id=t.id,
+            celery_task_id=t.celery_task_id,
+            status=data.get("status", t.status),
+            url=t.url,
+            title=t.title,
+            filename=data.get("filename") or t.filename,
+            thumbnail=t.thumbnail,
+            duration=t.duration,
+            progress=float(data.get("percent", t.progress)),
+            error_message=data.get("error"),
+            created_at=t.created_at,
+            updated_at=t.updated_at,
+        ))
+    return out
+
+
 @router.get("/tasks/{task_id}", response_model=TaskStatus)
 async def get_task_status(
     task_id: uuid.UUID,
@@ -128,6 +162,10 @@ async def _sse_generator(task_id: uuid.UUID) -> AsyncGenerator[str, None]:
     while elapsed < SSE_MAX_DURATION:
         data = await redis_client.hgetall(key)
         if not data:
+            db_data = await _get_task_from_db(task_id)
+            if db_data and db_data["status"] in ("completed", "failed"):
+                yield f"data: {json.dumps(db_data)}\n\n"
+                return
             yield f"data: {json.dumps({'error': 'Task not found'})}\n\n"
             return
 
@@ -153,6 +191,26 @@ async def _sse_generator(task_id: uuid.UUID) -> AsyncGenerator[str, None]:
         elapsed += 1
 
     yield f"data: {json.dumps({'error': 'SSE timeout'})}\n\n"
+
+
+async def _get_task_from_db(task_id: uuid.UUID) -> dict | None:
+    from sqlalchemy import select
+    from src.core.database import async_session
+    async with async_session() as session:
+        result = await session.execute(
+            select(DownloadTask).where(DownloadTask.id == task_id)
+        )
+        task = result.scalar_one_or_none()
+        if not task:
+            return None
+        return {
+            "status": task.status,
+            "percent": str(task.progress),
+            "speed": "",
+            "eta": "",
+            "filename": task.filename or "",
+            "error": task.error_message or "",
+        }
 
 
 @router.get("/tasks/{task_id}/progress")

@@ -6,19 +6,17 @@
     </header>
 
     <main>
-      <Transition name="morph" mode="out-in">
-        <DownloadForm
-          v-if="!currentTask"
-          key="form"
-          @download-started="onDownloadStarted"
-        />
+      <DownloadForm @download-started="onDownloadStarted" />
+
+      <div v-if="activeTasks.length" class="active-tasks">
+        <h2>Скачивание</h2>
         <ProgressBar
-          v-else
-          key="progress"
-          :task="currentTask"
-          @completed="onCompleted"
+          v-for="task in activeTasks"
+          :key="task.task_id"
+          :task="task"
+          @completed="onTaskCompleted"
         />
-      </Transition>
+      </div>
 
       <DownloadList :downloads="downloads" @download-started="onDownloadStarted" />
     </main>
@@ -30,25 +28,35 @@ import { ref, onMounted } from 'vue'
 import DownloadForm from './components/DownloadForm.vue'
 import ProgressBar from './components/ProgressBar.vue'
 import DownloadList from './components/DownloadList.vue'
-import { getTaskStatus } from './api.js'
+import { getTaskStatus, getActiveTasks } from './api.js'
 
-const currentTask = ref(null)
+const activeTasks = ref([])
 const downloads = ref([])
 
 function onDownloadStarted(task) {
-  currentTask.value = task
+  const exists = activeTasks.value.some(t => t.task_id === task.task_id)
+  if (!exists) {
+    activeTasks.value.unshift(task)
+  }
 }
 
-async function onCompleted(task) {
-  const status = await getTaskStatus(task.task_id)
-  downloads.value.unshift(status)
-  currentTask.value = null
-  localStorage.setItem('downloads', JSON.stringify(downloads.value))
+async function onTaskCompleted(task) {
+  activeTasks.value = activeTasks.value.filter(t => t.task_id !== task.task_id)
+  try {
+    const status = await getTaskStatus(task.task_id)
+    downloads.value.unshift(status)
+    localStorage.setItem('downloads', JSON.stringify(downloads.value))
+  } catch {}
 }
 
-onMounted(() => {
+onMounted(async () => {
   const saved = localStorage.getItem('downloads')
   if (saved) downloads.value = JSON.parse(saved)
+
+  try {
+    const active = await getActiveTasks()
+    activeTasks.value = active
+  } catch {}
 })
 </script>
 
@@ -118,18 +126,16 @@ header p {
   }
 }
 
-.morph-enter-active,
-.morph-leave-active {
-  transition: opacity 0.3s ease, transform 0.3s ease;
+.active-tasks {
+  margin-bottom: 2rem;
 }
 
-.morph-enter-from {
-  opacity: 0;
-  transform: translateY(-8px) scale(0.98);
-}
-
-.morph-leave-to {
-  opacity: 0;
-  transform: translateY(8px) scale(0.98);
+.active-tasks h2 {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 1rem;
 }
 </style>
