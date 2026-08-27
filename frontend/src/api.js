@@ -42,7 +42,10 @@ export async function getTaskStatus(taskId) {
 }
 
 export function streamProgress(taskId, onProgress, onError) {
-  const evtSource = new EventSource(`${API_BASE}/tasks/${taskId}/progress`)
+  const url = API_KEY
+    ? `${API_BASE}/tasks/${taskId}/progress?api_key=${encodeURIComponent(API_KEY)}`
+    : `${API_BASE}/tasks/${taskId}/progress`
+  const evtSource = new EventSource(url)
   evtSource.onmessage = (e) => {
     const data = JSON.parse(e.data)
     onProgress(data)

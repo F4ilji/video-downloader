@@ -20,10 +20,14 @@ class APIKeyMiddleware(BaseHTTPMiddleware):
             return await call_next(request)
 
         auth_header = request.headers.get("Authorization", "")
-        if not auth_header.startswith("Bearer "):
+        if auth_header.startswith("Bearer "):
+            token = auth_header[7:]
+        else:
+            token = request.query_params.get("api_key", "")
+
+        if not token:
             return JSONResponse({"detail": "Missing or invalid Authorization header"}, status_code=401)
 
-        token = auth_header[7:]
         if token != self.api_key:
             return JSONResponse({"detail": "Invalid API key"}, status_code=401)
 
