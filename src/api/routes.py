@@ -226,7 +226,7 @@ async def task_progress_sse(task_id: uuid.UUID) -> StreamingResponse:
     )
 
 
-@router.get("/download/{filename:path}", methods=["GET", "HEAD"])
+@router.api_route("/download/{filename:path}", methods=["GET", "HEAD"])
 async def serve_file(filename: str):
     file_path = Path(settings.downloads_path) / filename
     if not file_path.exists():
