@@ -31,6 +31,7 @@ def _default_opts(
     progress_hook: Callable | None = None,
     mode: str = "video",
     quality: str = "best",
+    url: str = "",
 ) -> dict[str, Any]:
     if mode == "audio":
         fmt = "bestaudio/best"
@@ -51,7 +52,7 @@ def _default_opts(
     }
     if merge_output:
         opts["merge_output_format"] = merge_output
-    if settings.proxy:
+    if settings.proxy and "youtube" in url:
         opts["proxy"] = settings.proxy
     cookies = _get_cookies_path()
     if cookies:
@@ -71,7 +72,7 @@ def extract_info(url: str) -> dict[str, Any]:
             "youtubepot-bgutilhttp": {"base_url": settings.pot_provider_url},
         },
     }
-    if settings.proxy:
+    if settings.proxy and "youtube" in url:
         opts["proxy"] = settings.proxy
     cookies = _get_cookies_path()
     if cookies:
@@ -99,7 +100,7 @@ def download_video(
     mode: str = "video",
     quality: str = "best",
 ) -> str:
-    opts = _default_opts(output_path, output_name, progress_hook, mode, quality)
+    opts = _default_opts(output_path, output_name, progress_hook, mode, quality, url=url)
     opts["extractor_args"] = {
         "youtube": {},
         "youtubepot-bgutilhttp": {"base_url": settings.pot_provider_url},
