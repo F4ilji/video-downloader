@@ -1,0 +1,9 @@
+{
+  "name": "cookie-refresh",
+  "version": "1.0.0",
+  "description": "YouTube cookie refresh via headless Chrome",
+  "main": "refresh.js",
+  "dependencies": {
+    "puppeteer": "^23.0.0"
+  }
+}

@@ -16,7 +16,7 @@ services:
       - "8000:8000"
     volumes:
       - ./downloads:/downloads
-      - ./cookies.txt:/cookies.txt:ro
+      - cookie-data:/cookies-data
     depends_on:
       redis:
         condition: service_healthy
@@ -44,7 +44,7 @@ services:
     command: celery -A src.tasks.celery_app worker --loglevel=info --concurrency=2
     volumes:
       - ./downloads:/downloads
-      - ./cookies.txt:/cookies.txt:ro
+      - cookie-data:/cookies-data
     depends_on:
       redis:
         condition: service_healthy
@@ -91,6 +91,25 @@ services:
     restart: unless-stopped
     profiles:
       - login
+
+  cookie-refresh:
+    build:
+      context: .
+      dockerfile: Dockerfile.cookie-refresh
+    volumes:
+      - cookie-data:/data
+    environment:
+      - COOKIES_DIR=/data
+      - HTTP_PROXY=socks5://xray:10808
+      - HTTPS_PROXY=socks5://xray:10808
+      - NO_PROXY=localhost,127.0.0.1
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
+    depends_on:
+      xray:
+        condition: service_started
+    restart: unless-stopped
 
   xray:
     image: teddysun/xray:1.8.24
