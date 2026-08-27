@@ -12,6 +12,7 @@ jobs:
       - name: Deploy
         run: |
           cd /opt/video-downloader
-          git pull
+          git fetch origin
+          git reset --hard origin/main
           docker compose build api worker frontend
           docker compose up -d --force-recreate api worker frontend
