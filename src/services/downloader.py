@@ -76,9 +76,19 @@ def extract_info(url: str) -> dict[str, Any]:
     cookies = _get_cookies_path()
     if cookies:
         opts["cookiefile"] = cookies
-    with yt_dlp.YoutubeDL(opts) as ydl:
-        info = ydl.extract_info(url, download=False)
-        return ydl.sanitize_info(info)  # type: ignore[no-any-return]
+
+    import time
+    last_err = None
+    for attempt in range(3):
+        try:
+            with yt_dlp.YoutubeDL(opts) as ydl:
+                info = ydl.extract_info(url, download=False)
+                return ydl.sanitize_info(info)  # type: ignore[no-any-return]
+        except Exception as e:
+            last_err = e
+            if attempt < 2:
+                time.sleep(2)
+    raise last_err  # type: ignore[misc]
 
 
 def download_video(
