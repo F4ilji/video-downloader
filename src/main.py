@@ -7,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from src.api.routes import router
 from src.core.config import settings
 from src.core.database import engine
+from src.core.middleware import APIKeyMiddleware
 from src.models.download import Base
 
 
@@ -27,6 +28,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.add_middleware(APIKeyMiddleware, api_key=settings.api_key)
 
 app.include_router(router, prefix="/api")
 

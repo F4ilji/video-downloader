@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     pot_provider_url: str = "http://pot-provider:4416"
     yt_dlp_cookies_path: str | None = None
     cors_origins: str = "*"
+    api_key: str | None = None
 
     @property
     def celery_broker_url(self) -> str:
