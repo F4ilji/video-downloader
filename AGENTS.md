@@ -100,6 +100,7 @@ Never load multiple unrelated contexts.
 - Linter: ruff check
 - Type check: mypy
 - No compile command (interpreted Python)
+- SSH to prod: `ssh root@192.168.0.161` (only with explicit user permission)
 </infrastructure_commands>
 
 <task_management>
