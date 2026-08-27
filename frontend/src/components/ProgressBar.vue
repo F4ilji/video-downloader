@@ -125,9 +125,12 @@ onMounted(async () => {
         }
 
         if (data.status === 'completed' && data.filename) {
+          const apiKey = import.meta.env.VITE_API_KEY || ''
           const name = data.filename.split('/').pop()
+          const base = `/api/download/${encodeURIComponent(name)}`
+          const url = apiKey ? `${base}?api_key=${encodeURIComponent(apiKey)}` : base
           const a = document.createElement('a')
-          a.href = `/api/download/${encodeURIComponent(name)}`
+          a.href = url
           a.download = ''
           document.body.appendChild(a)
           a.click()
