@@ -101,6 +101,7 @@ Never load multiple unrelated contexts.
 - Type check: mypy
 - No compile command (interpreted Python)
 - SSH to prod: `ssh root@192.168.0.161` (only with explicit user permission)
+- Deploy: `ssh root@192.168.0.161 "bash /opt/video-downloader/scripts/deploy.sh"`
 </infrastructure_commands>
 
 <task_management>
