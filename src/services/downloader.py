@@ -52,7 +52,7 @@ def _default_opts(
     }
     if merge_output:
         opts["merge_output_format"] = merge_output
-    if settings.proxy and "youtube" in url:
+    if settings.proxy and ("youtube" in url or "youtu.be" in url):
         opts["proxy"] = settings.proxy
     cookies = _get_cookies_path()
     if cookies:
@@ -72,7 +72,7 @@ def extract_info(url: str) -> dict[str, Any]:
             "youtubepot-bgutilhttp": {"base_url": settings.pot_provider_url},
         },
     }
-    if settings.proxy and "youtube" in url:
+    if settings.proxy and ("youtube" in url or "youtu.be" in url):
         opts["proxy"] = settings.proxy
     cookies = _get_cookies_path()
     if cookies:
