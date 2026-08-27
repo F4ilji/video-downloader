@@ -41,7 +41,7 @@ services:
 
   worker:
     build: .
-    command: celery -A src.tasks.celery_app worker --loglevel=info --concurrency=2
+    command: celery -A src.tasks.celery_app worker --loglevel=info --concurrency=4
     volumes:
       - ./downloads:/downloads
       - cookie-data:/cookies-data

@@ -48,7 +48,7 @@ def _default_opts(
         "socket_timeout": 30,
         "retries": 10,
         "fragment_retries": 10,
-        "concurrent_fragment_downloads": 16,
+        "concurrent_fragment_downloads": 32,
     }
     if merge_output:
         opts["merge_output_format"] = merge_output
