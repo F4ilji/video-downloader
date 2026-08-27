@@ -7,13 +7,12 @@ on:
 jobs:
   deploy:
     runs-on: self-hosted
-    timeout-minutes: 30
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
 
-      - name: Deploy
+      - name: Build and deploy
         run: |
-          pwd
-          ls -la
-          docker compose build api worker frontend
-          docker compose up -d api worker frontend
+          export DOCKER_BUILDKIT=1
+          docker compose build --parallel api worker frontend
+          docker compose up -d --force-recreate api worker frontend
