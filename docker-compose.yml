@@ -2,7 +2,7 @@ services:
   frontend:
     build: ./frontend
     ports:
-      - "80:80"
+      - "3000:80"
     volumes:
       - ./downloads:/downloads
     depends_on:
