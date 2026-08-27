@@ -57,9 +57,18 @@ function downloadUrl(item) {
 
 async function handleClick(item) {
   if (!item.url) return
+  const url = downloadUrl(item)
   try {
-    const res = await fetch(downloadUrl(item), { method: 'HEAD' })
-    if (res.ok) return
+    const res = await fetch(url, { method: 'HEAD' })
+    if (res.ok) {
+      const a = document.createElement('a')
+      a.href = url
+      a.download = ''
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      return
+    }
   } catch {
     // file missing, re-download
   }
