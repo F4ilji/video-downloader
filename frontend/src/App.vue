@@ -44,6 +44,7 @@ async function onTaskCompleted(task) {
   activeTasks.value = activeTasks.value.filter(t => t.task_id !== task.task_id)
   try {
     const status = await getTaskStatus(task.task_id)
+    downloads.value = downloads.value.filter(t => t.task_id !== task.task_id)
     downloads.value.unshift(status)
     localStorage.setItem('downloads', JSON.stringify(downloads.value))
   } catch {}
