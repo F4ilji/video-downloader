@@ -7,6 +7,7 @@ from pathlib import Path
 import redis.asyncio as aioredis
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import FileResponse, StreamingResponse
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.config import settings
@@ -251,3 +252,23 @@ async def list_downloads():
                 "url": f"/api/download/{f.name}",
             })
     return files
+
+
+@router.delete("/tasks/{task_id}")
+async def delete_task(
+    task_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),  # noqa: B008
+) -> dict:
+    result = await db.execute(
+        select(DownloadTask).where(DownloadTask.id == task_id)
+    )
+    task = result.scalar_one_or_none()
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+
+    key = f"task:{task_id}:progress"
+    await redis_client.delete(key)
+
+    await db.delete(task)
+    await db.commit()
+    return {"ok": True}

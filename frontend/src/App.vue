@@ -18,7 +18,7 @@
         />
       </div>
 
-      <DownloadList :downloads="downloads" @download-started="onDownloadStarted" />
+      <DownloadList :downloads="downloads" @download-started="onDownloadStarted" @download-deleted="onDownloadDeleted" />
     </main>
   </div>
 </template>
@@ -47,6 +47,11 @@ async function onTaskCompleted(task) {
     downloads.value.unshift(status)
     localStorage.setItem('downloads', JSON.stringify(downloads.value))
   } catch {}
+}
+
+function onDownloadDeleted(taskId) {
+  downloads.value = downloads.value.filter(t => t.task_id !== taskId)
+  localStorage.setItem('downloads', JSON.stringify(downloads.value))
 }
 
 onMounted(async () => {

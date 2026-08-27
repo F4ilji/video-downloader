@@ -21,14 +21,19 @@
           <path d="M8 2v9m0 0L5 8m3 3 3-3M3 13h10"/>
         </svg>
       </a>
+      <button class="btn-delete" @click="handleDelete(item)" title="Удалить">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+          <path d="M3 3l8 8M11 3l-8 8"/>
+        </svg>
+      </button>
     </div>
   </div>
 </template>
 
 <script setup>
-import { downloadVideo } from '../api.js'
+import { downloadVideo, deleteTask } from '../api.js'
 
-const emit = defineEmits(['download-started'])
+const emit = defineEmits(['download-started', 'download-deleted'])
 
 defineProps({
   downloads: { type: Array, default: () => [] },
@@ -66,6 +71,16 @@ async function handleClick(item) {
     emit('download-started', task)
   } catch (e) {
     console.error('Re-download failed:', e)
+  }
+}
+
+async function handleDelete(item) {
+  if (!item.task_id) return
+  try {
+    await deleteTask(item.task_id)
+    emit('download-deleted', item.task_id)
+  } catch (e) {
+    console.error('Delete failed:', e)
   }
 }
 </script>
@@ -147,5 +162,25 @@ h2 {
 .btn-download:hover {
   background: var(--accent);
   color: var(--bg-base);
+}
+
+.btn-delete {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  color: var(--text-muted);
+  border: none;
+  border-radius: 0.375rem;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 150ms ease-out;
+}
+
+.btn-delete:hover {
+  background: #FEF2F2;
+  color: #DC2626;
 }
 </style>

@@ -55,3 +55,9 @@ export async function getActiveTasks() {
   if (!res.ok) throw new Error('Failed to load active tasks')
   return res.json()
 }
+
+export async function deleteTask(taskId) {
+  const res = await fetch(`${API_BASE}/tasks/${taskId}`, { method: 'DELETE' })
+  if (!res.ok) throw new Error('Failed to delete task')
+  return res.json()
+}
