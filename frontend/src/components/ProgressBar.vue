@@ -1,38 +1,27 @@
 <template>
-  <div class="progress-bar">
-    <div class="progress-left">
-      <div class="circle">
-        <svg viewBox="0 0 44 44">
-          <circle class="track" cx="22" cy="22" :r="RADIUS" :stroke-dasharray="circumference" />
-          <circle
-            class="fill"
-            cx="22"
-            cy="22"
-            :r="RADIUS"
-            :stroke-dasharray="circumference"
-            :style="{ strokeDashoffset: dashOffset }"
-          />
-        </svg>
-        <span class="percent">{{ percent }}%</span>
-      </div>
+  <div class="progress-bar" :class="status">
+    <div class="progress-ring" :style="ringStyle" />
+    <div class="progress-fill" />
+    <div class="progress-content">
       <div class="details">
         <span class="title">{{ title }}</span>
         <div class="meta">
-          <span class="status" :class="status">{{ statusText }}</span>
+          <span class="status-badge" :class="status">{{ statusText }}</span>
+          <span v-if="isActive" class="percent">{{ displayPercent.toFixed(1) }}%</span>
           <span v-if="speed" class="speed">{{ speed }}</span>
           <span v-if="eta" class="eta">Осталось ~{{ eta }}</span>
         </div>
       </div>
-    </div>
 
-    <a
-      v-if="status === 'completed' && filename"
-      :href="downloadUrl"
-      class="download-link"
-      download
-    >
-      Скачать файл
-    </a>
+      <a
+        v-if="status === 'completed' && filename"
+        :href="downloadUrl"
+        class="download-link"
+        download
+      >
+        Скачать файл
+      </a>
+    </div>
 
     <p v-if="error" class="error">{{ error }}</p>
   </div>
@@ -48,10 +37,10 @@ const props = defineProps({
 
 const emit = defineEmits(['completed'])
 
-const RADIUS = 18
-const circumference = 2 * Math.PI * RADIUS
+const LERP_FACTOR = 0.08
 
-const percent = ref(0)
+const targetPercent = ref(0)
+const displayPercent = ref(0)
 const speed = ref('')
 const eta = ref('')
 const status = ref('pending')
@@ -59,20 +48,37 @@ const filename = ref('')
 const error = ref('')
 const title = ref(props.task.url)
 const evtSource = ref(null)
+let rafId = null
 
-const dashOffset = computed(() => {
-  const progress = percent.value / 100
-  return circumference - progress * circumference
-})
+const isActive = computed(() =>
+  ['downloading', 'processing'].includes(status.value)
+)
 
 const statusText = computed(() => {
   const map = {
     pending: 'Ожидание',
     downloading: 'Загрузка',
+    processing: 'Обработка',
     completed: 'Готово',
     failed: 'Ошибка',
   }
   return map[status.value] || status.value
+})
+
+const ringColor = computed(() => {
+  if (status.value === 'completed') return 'var(--green-ok)'
+  if (status.value === 'failed') return 'var(--red-alert)'
+  return 'var(--blue-info)'
+})
+
+const ringStyle = computed(() => {
+  if (isActive.value) {
+    return { '--progress': `${Math.round(displayPercent.value * 3.6)}deg` }
+  }
+  if (status.value === 'completed' || status.value === 'failed') {
+    return { '--progress': '360deg' }
+  }
+  return {}
 })
 
 const downloadUrl = computed(() => {
@@ -83,12 +89,66 @@ const downloadUrl = computed(() => {
   return apiKey ? `${base}?api_key=${encodeURIComponent(apiKey)}` : base
 })
 
+function animate() {
+  const diff = targetPercent.value - displayPercent.value
+  if (Math.abs(diff) > 0.1) {
+    displayPercent.value += diff * LERP_FACTOR
+    rafId = requestAnimationFrame(animate)
+  } else {
+    displayPercent.value = targetPercent.value
+  }
+}
+
+function startAnimation() {
+  if (rafId) cancelAnimationFrame(rafId)
+  rafId = requestAnimationFrame(animate)
+}
+
+function handleSseData(data) {
+  const newStatus = data.status
+  const newPercent = parseFloat(data.percent) || 0
+
+  status.value = newStatus
+  speed.value = data.speed
+  eta.value = data.eta
+  filename.value = data.filename
+  error.value = data.error
+
+  if (newStatus === 'downloading' || newStatus === 'processing') {
+    if (newPercent >= targetPercent.value) {
+      targetPercent.value = newPercent
+    }
+    startAnimation()
+  }
+
+  if (newStatus === 'completed' || newStatus === 'failed') {
+    targetPercent.value = newStatus === 'completed' ? 100 : targetPercent.value
+    displayPercent.value = targetPercent.value
+    if (rafId) cancelAnimationFrame(rafId)
+    emit('completed', props.task)
+  }
+
+  if (newStatus === 'completed' && data.filename) {
+    const apiKey = import.meta.env.VITE_API_KEY || ''
+    const name = data.filename.split('/').pop()
+    const base = `/api/download/${encodeURIComponent(name)}`
+    const url = apiKey ? `${base}?api_key=${encodeURIComponent(apiKey)}` : base
+    const a = document.createElement('a')
+    a.href = url
+    a.download = ''
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+  }
+}
+
 onMounted(async () => {
   try {
     const info = await getTaskStatus(props.task.task_id)
     title.value = info.title || info.url
     status.value = info.status
-    percent.value = info.progress || 0
+    targetPercent.value = info.progress || 0
+    displayPercent.value = targetPercent.value
 
     if (info.status === 'completed' || info.status === 'failed') {
       filename.value = info.filename
@@ -112,31 +172,7 @@ onMounted(async () => {
 
     evtSource.value = streamProgress(
       props.task.task_id,
-      (data) => {
-        status.value = data.status
-        percent.value = parseFloat(data.percent) || 0
-        speed.value = data.speed
-        eta.value = data.eta
-        filename.value = data.filename
-        error.value = data.error
-
-        if (data.status === 'completed' || data.status === 'failed') {
-          emit('completed', props.task)
-        }
-
-        if (data.status === 'completed' && data.filename) {
-          const apiKey = import.meta.env.VITE_API_KEY || ''
-          const name = data.filename.split('/').pop()
-          const base = `/api/download/${encodeURIComponent(name)}`
-          const url = apiKey ? `${base}?api_key=${encodeURIComponent(apiKey)}` : base
-          const a = document.createElement('a')
-          a.href = url
-          a.download = ''
-          document.body.appendChild(a)
-          a.click()
-          document.body.removeChild(a)
-        }
-      },
+      handleSseData,
       () => {}
     )
   } catch (e) {
@@ -145,62 +181,72 @@ onMounted(async () => {
 })
 
 onUnmounted(() => {
+  if (rafId) cancelAnimationFrame(rafId)
   if (evtSource.value) evtSource.value.close()
 })
 </script>
 
 <style scoped>
+@property --progress {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+
 .progress-bar {
-  background: var(--bg-card);
-  border: 1px solid var(--border-subtle);
-  border-radius: 0.75rem;
-  padding: 1.25rem;
-  margin-bottom: 1rem;
-  transition: all 150ms ease-out;
-}
-
-.progress-left {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-}
-
-.circle {
   position: relative;
-  width: 44px;
-  height: 44px;
-  flex-shrink: 0;
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-md);
 }
 
-.circle svg {
-  transform: rotate(-90deg);
-  width: 44px;
-  height: 44px;
-}
-
-.circle .track {
-  fill: none;
-  stroke: var(--bg-subtle);
-  stroke-width: 3;
-}
-
-.circle .fill {
-  fill: none;
-  stroke: var(--accent);
-  stroke-width: 3;
-  stroke-linecap: round;
-  transition: stroke-dashoffset 300ms ease-out;
-}
-
-.percent {
+.progress-ring {
   position: absolute;
   inset: 0;
+  border-radius: var(--radius-md);
+  background: conic-gradient(var(--blue-info) var(--progress), transparent var(--progress));
+  transition: --progress 80ms linear;
+}
+
+.progress-fill {
+  position: absolute;
+  inset: 2px;
+  border-radius: calc(var(--radius-md) - 2px);
+  background: var(--bg-card);
+}
+
+.progress-content {
+  position: relative;
+  padding: var(--space-lg);
   display: flex;
   align-items: center;
-  justify-content: center;
-  font-size: 0.5625rem;
-  font-weight: 500;
-  color: var(--text-primary);
+  gap: var(--space-md);
+}
+
+.progress-bar:not(.downloading):not(.processing):not(.completed):not(.failed) .progress-ring {
+  display: none;
+}
+
+.progress-bar.completed .progress-ring {
+  background: conic-gradient(var(--green-ok) var(--progress), transparent var(--progress));
+}
+
+.progress-bar.processing .progress-ring {
+  background: conic-gradient(var(--yellow-warn) var(--progress), transparent var(--progress));
+}
+
+.progress-bar.failed .progress-ring {
+  background: conic-gradient(var(--red-alert) var(--progress), transparent var(--progress));
+}
+
+.progress-bar:not(.downloading):not(.processing):not(.completed):not(.failed) .progress-fill {
+  display: none;
+}
+
+.progress-bar:not(.downloading):not(.processing):not(.completed):not(.failed) .progress-content {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
 }
 
 .details {
@@ -211,73 +257,84 @@ onUnmounted(() => {
 .title {
   display: block;
   font-weight: 500;
-  font-size: 0.9375rem;
+  font: var(--p-sm);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  color: var(--text-primary);
+  color: var(--text-main);
 }
 
 .meta {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  margin-top: 0.25rem;
+  gap: var(--space-sm);
+  margin-top: var(--space-xs);
 }
 
-.status {
-  font-size: 0.75rem;
+.status-badge {
+  font: var(--p-xs);
   font-weight: 500;
-  padding: 0.125rem 0.5rem;
+  padding: 2px var(--space-sm);
   border-radius: 9999px;
-  background: var(--bg-subtle);
-  color: var(--text-secondary);
+  background: var(--bg-hover);
+  color: var(--text-sub);
 }
 
-.status.downloading {
-  background: var(--accent-soft-bg);
-  color: var(--accent-hover);
+.status-badge.downloading {
+  background: var(--blue-soft-bg);
+  color: var(--blue-info);
 }
 
-.status.completed {
-  background: #F0FDF4;
-  color: #16A34A;
+.status-badge.processing {
+  background: var(--yellow-soft-bg);
+  color: var(--yellow-warn);
 }
 
-.status.failed {
-  background: #FEF2F2;
-  color: #DC2626;
+.status-badge.completed {
+  background: var(--green-soft-bg);
+  color: var(--green-ok);
+}
+
+.status-badge.failed {
+  background: var(--red-soft-bg);
+  color: var(--red-alert);
+}
+
+.percent {
+  font: var(--p-xs);
+  font-weight: 600;
+  color: var(--blue-info);
 }
 
 .speed,
 .eta {
-  font-size: 0.8125rem;
-  color: var(--text-secondary);
+  font: var(--p-xs);
+  color: var(--text-sub);
 }
 
 .download-link {
   display: inline-flex;
   align-items: center;
-  gap: 0.375rem;
-  margin-top: 1rem;
-  padding: 0.5rem 1rem;
-  background: var(--accent-soft-bg);
-  color: var(--accent-hover);
+  gap: var(--space-xs);
+  padding: var(--space-xs) var(--space-md);
+  background: var(--blue-soft-bg);
+  color: var(--blue-info);
   text-decoration: none;
-  border-radius: 0.5rem;
-  font-size: 0.8125rem;
+  border-radius: var(--radius-sm);
+  font: var(--p-xs);
   font-weight: 500;
-  transition: all 150ms ease-out;
+  flex-shrink: 0;
+  transition: background 150ms ease-out, color 150ms ease-out;
 }
 
 .download-link:hover {
-  background: var(--accent);
-  color: var(--bg-base);
+  background: var(--blue-info);
+  color: hsl(0, 0%, 100%);
 }
 
 .error {
-  margin-top: 0.75rem;
-  color: #DC2626;
-  font-size: 0.8125rem;
+  margin-top: var(--space-sm);
+  color: var(--red-alert);
+  font: var(--p-xs);
 }
 </style>

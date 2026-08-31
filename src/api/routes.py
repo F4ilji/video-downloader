@@ -157,8 +157,9 @@ async def get_task_status(
 
 async def _sse_generator(task_id: uuid.UUID) -> AsyncGenerator[str, None]:
     key = f"task:{task_id}:progress"
-    elapsed = 0
-    last_heartbeat = 0
+    elapsed = 0.0
+    last_heartbeat = 0.0
+    poll_interval = 0.2
 
     while elapsed < SSE_MAX_DURATION:
         data = await redis_client.hgetall(key)
@@ -188,8 +189,8 @@ async def _sse_generator(task_id: uuid.UUID) -> AsyncGenerator[str, None]:
             yield ": keepalive\n\n"
             last_heartbeat = elapsed
 
-        await asyncio.sleep(1)
-        elapsed += 1
+        await asyncio.sleep(poll_interval)
+        elapsed += poll_interval
 
     yield f"data: {json.dumps({'error': 'SSE timeout'})}\n\n"
 

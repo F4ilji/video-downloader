@@ -21,3 +21,4 @@ downloads/
 cookies.txt
 xray/
 node_modules/
+frontend/.env

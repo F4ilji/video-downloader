@@ -1,8 +1,11 @@
 # Memory
-*Generated from facts.jsonl at 2026-08-26T06:38:06.792Z*
+*Generated from facts.jsonl at 2026-08-31T08:53:42.947Z*
 
 ## infra
 - [2026-08-26] Production deployment uses .env file for secrets, not hardcoded values in docker-compose.yml → Must create .env from .env.example before deploying (confidence: 0.95)
+
+## tasks
+- [2026-08-26] Duplicate Celery app in download.py (line 10) caused tasks to register on wrong app instance. Server worker couldn't route tasks properly. Fixed by importing from celery_app.py. → Always import celery_app from central config, never create local instances in task modules (confidence: 0.95)
 
 ## general
 - [2026-08-25] *Generated from facts.jsonl at 2026-08-25T13:06:16.114Z* → N/A (confidence: 0.8)

@@ -97,39 +97,40 @@ async function handleDelete(item) {
 
 <style scoped>
 .download-list {
-  margin-top: 3rem;
+  margin-top: var(--space-xl);
 }
 
 h2 {
-  font-size: 0.75rem;
+  font: var(--p-xs);
   font-weight: 500;
   color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  margin-bottom: 1rem;
+  margin-bottom: var(--space-md);
 }
 
 .item {
   display: flex;
   align-items: center;
-  gap: 1rem;
-  padding: 1rem;
+  gap: var(--space-md);
+  padding: var(--space-md);
   background: var(--bg-card);
-  border: 1px solid var(--border-subtle);
-  border-radius: 0.75rem;
-  margin-bottom: 0.5rem;
-  transition: all 150ms ease-out;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-sm);
+  box-shadow: var(--shadow-card);
+  transition: border-color 150ms ease-out;
 }
 
 .item:hover {
-  border-color: var(--accent-soft-border);
+  border-color: var(--blue-soft-border);
 }
 
 .thumb {
   width: 112px;
   height: 64px;
   object-fit: cover;
-  border-radius: 0.5rem;
+  border-radius: var(--radius-sm);
   flex-shrink: 0;
 }
 
@@ -141,18 +142,18 @@ h2 {
 .title {
   display: block;
   font-weight: 500;
-  font-size: 0.9375rem;
+  font: var(--p-sm);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  color: var(--text-primary);
+  color: var(--text-main);
 }
 
 .meta {
   display: block;
-  font-size: 0.8125rem;
-  color: var(--text-secondary);
-  margin-top: 0.25rem;
+  font: var(--p-xs);
+  color: var(--text-sub);
+  margin-top: var(--space-xs);
 }
 
 .btn-download {
@@ -161,17 +162,17 @@ h2 {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--accent-soft-bg);
-  color: var(--accent-hover);
+  background: var(--blue-soft-bg);
+  color: var(--blue-info);
   text-decoration: none;
-  border-radius: 0.5rem;
+  border-radius: var(--radius-sm);
   flex-shrink: 0;
-  transition: all 150ms ease-out;
+  transition: background 150ms ease-out, color 150ms ease-out;
 }
 
 .btn-download:hover {
-  background: var(--accent);
-  color: var(--bg-base);
+  background: var(--blue-info);
+  color: hsl(0, 0%, 100%);
 }
 
 .btn-delete {
@@ -183,14 +184,14 @@ h2 {
   background: transparent;
   color: var(--text-muted);
   border: none;
-  border-radius: 0.375rem;
+  border-radius: var(--radius-sm);
   cursor: pointer;
   flex-shrink: 0;
-  transition: all 150ms ease-out;
+  transition: background 150ms ease-out, color 150ms ease-out;
 }
 
 .btn-delete:hover {
-  background: #FEF2F2;
-  color: #DC2626;
+  background: var(--red-soft-bg);
+  color: var(--red-alert);
 }
 </style>

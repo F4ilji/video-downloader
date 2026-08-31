@@ -54,6 +54,7 @@
 
       <button
         class="btn-download"
+        :class="{ loading }"
         @click="startDownload"
         :disabled="loading"
       >
@@ -130,24 +131,24 @@ async function startDownload() {
 
 <style scoped>
 .download-form {
-  margin-bottom: 2.5rem;
+  margin-bottom: var(--space-xl);
 }
 
 form {
   display: flex;
-  gap: 0.75rem;
+  gap: var(--space-sm);
 }
 
 input[type="url"] {
   width: 100%;
-  padding: 0.75rem 1rem;
-  border: 1px solid var(--border-subtle);
-  border-radius: 0.75rem;
-  background: var(--bg-base);
-  color: var(--text-primary);
-  font-size: 0.9375rem;
+  padding: var(--space-sm) var(--space-md);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-input);
+  color: var(--text-main);
+  font: var(--p-sm);
   font-family: inherit;
-  transition: all 150ms ease-out;
+  transition: border-color 150ms ease-out, box-shadow 150ms ease-out;
 }
 
 input[type="url"]:hover {
@@ -156,87 +157,96 @@ input[type="url"]:hover {
 
 input[type="url"]:focus {
   outline: none;
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-focus);
+  border-color: var(--border-focus);
+  box-shadow: 0 0 0 3px var(--blue-focus);
 }
 
 input[type="url"]::placeholder {
   color: var(--text-muted);
 }
 
+input[type="url"].warning {
+  border-color: var(--yellow-warn);
+}
+
+input[type="url"].warning:focus {
+  box-shadow: 0 0 0 3px var(--yellow-focus);
+}
+
 .error {
-  margin-top: 0.75rem;
-  color: #DC2626;
-  font-size: 0.8125rem;
+  margin-top: var(--space-sm);
+  color: var(--red-alert);
+  font: var(--p-xs);
 }
 
 .preview {
-  margin-top: 1rem;
+  margin-top: var(--space-md);
   background: var(--bg-card);
-  border: 1px solid var(--border-subtle);
-  border-radius: 0.75rem;
-  padding: 1.25rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: var(--space-lg);
   display: flex;
   flex-direction: column;
-  gap: 1rem;
-  transition: all 150ms ease-out;
+  gap: var(--space-md);
+  box-shadow: var(--shadow-card);
+  transition: border-color 150ms ease-out;
 }
 
 .preview:hover {
-  border-color: var(--accent-soft-border);
+  border-color: var(--blue-soft-border);
 }
 
 .preview-thumb {
   width: 100%;
   aspect-ratio: 16 / 9;
   object-fit: cover;
-  border-radius: 0.5rem;
+  border-radius: var(--radius-sm);
 }
 
 .preview-body {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: var(--space-xs);
 }
 
 .preview-title {
   font-weight: 500;
-  font-size: 0.9375rem;
-  color: var(--text-primary);
+  font: var(--p-sm);
+  color: var(--text-main);
   line-height: 1.4;
 }
 
 .preview-duration {
-  font-size: 0.8125rem;
-  color: var(--text-secondary);
+  font: var(--p-xs);
+  color: var(--text-sub);
 }
 
 .checkbox {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  font-size: 0.875rem;
-  color: var(--text-primary);
+  gap: var(--space-sm);
+  font: var(--p-sm);
+  color: var(--text-main);
   cursor: pointer;
 }
 
 .checkbox input[type="checkbox"] {
   width: 16px;
   height: 16px;
-  accent-color: var(--accent);
+  accent-color: var(--blue-info);
   cursor: pointer;
 }
 
 .quality-row {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: var(--space-sm);
 }
 
 .select-label {
-  font-size: 0.8125rem;
+  font: var(--p-xs);
   font-weight: 500;
-  color: var(--text-secondary);
+  color: var(--text-sub);
   white-space: nowrap;
 }
 
@@ -246,20 +256,20 @@ input[type="url"]::placeholder {
 
 .select-wrapper select {
   width: 100%;
-  padding: 0.5rem 0.75rem;
-  border: 1px solid var(--border-subtle);
-  border-radius: 0.5rem;
-  background: var(--bg-base);
-  color: var(--text-primary);
-  font-size: 0.875rem;
+  padding: var(--space-xs) var(--space-sm);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-input);
+  color: var(--text-main);
+  font: var(--p-sm);
   font-family: inherit;
   cursor: pointer;
-  transition: all 150ms ease-out;
+  transition: border-color 150ms ease-out, box-shadow 150ms ease-out;
   appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%236B7280' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L5 5L9 1' stroke='currentColor' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
-  background-position: right 0.75rem center;
-  padding-right: 2rem;
+  background-position: right var(--space-sm) center;
+  padding-right: var(--space-lg);
 }
 
 .select-wrapper select:hover {
@@ -268,31 +278,52 @@ input[type="url"]::placeholder {
 
 .select-wrapper select:focus {
   outline: none;
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-focus);
+  border-color: var(--border-focus);
+  box-shadow: 0 0 0 3px var(--blue-focus);
 }
 
 .btn-download {
   width: 100%;
-  padding: 0.75rem;
+  padding: var(--space-sm) var(--space-md);
   border: none;
-  border-radius: 0.75rem;
-  background: var(--text-primary);
-  color: var(--bg-base);
-  font-size: 0.9375rem;
+  border-radius: var(--radius-md);
+  background: var(--blue-info);
+  color: hsl(0, 0%, 100%);
+  font: var(--p-sm);
   font-weight: 500;
   font-family: inherit;
   cursor: pointer;
-  transition: all 150ms ease-out;
+  transition: background 150ms ease-out, transform 100ms ease-out, opacity 150ms ease-out;
 }
 
 .btn-download:hover:not(:disabled) {
-  background: #27272A;
+  filter: brightness(0.9);
+}
+
+.btn-download:active:not(:disabled) {
+  transform: scale(0.98);
 }
 
 .btn-download:disabled {
-  opacity: 0.4;
+  opacity: 0.5;
   cursor: not-allowed;
+}
+
+.btn-download.loading {
+  position: relative;
+  color: transparent;
+  pointer-events: none;
+}
+
+.btn-download.loading::after {
+  content: '';
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  border: 2px solid hsla(0, 0%, 100%, 0.3);
+  border-top-color: hsl(0, 0%, 100%);
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
 }
 
 @keyframes shimmer {
@@ -300,9 +331,13 @@ input[type="url"]::placeholder {
   100% { background-position: 200% 0 }
 }
 
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
 .skeleton > * {
-  border-radius: 0.5rem;
-  background: linear-gradient(90deg, var(--border-subtle) 25%, #f0f0f0 50%, var(--border-subtle) 75%);
+  border-radius: var(--radius-sm);
+  background: linear-gradient(90deg, var(--border) 25%, var(--bg-hover) 50%, var(--border) 75%);
   background-size: 200% 100%;
   animation: shimmer 1.5s ease-in-out infinite;
 }
@@ -315,12 +350,12 @@ input[type="url"]::placeholder {
 .skeleton-body {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: var(--space-sm);
 }
 
 .skeleton-line {
   height: 14px;
-  border-radius: 4px;
+  border-radius: var(--space-xs);
 }
 
 .skeleton-line.wide { width: 80% }
@@ -331,7 +366,7 @@ input[type="url"]::placeholder {
 .skeleton-row {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: var(--space-sm);
 }
 
 .skeleton-check {
@@ -343,12 +378,12 @@ input[type="url"]::placeholder {
 .skeleton-select {
   flex: 1;
   height: 36px;
-  border-radius: 0.5rem;
+  border-radius: var(--radius-sm);
 }
 
 .skeleton-btn {
   width: 100%;
   height: 44px;
-  border-radius: 0.75rem;
+  border-radius: var(--radius-md);
 }
 </style>
