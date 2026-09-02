@@ -22,3 +22,5 @@ cookies.txt
 xray/
 node_modules/
 frontend/.env
+AGENTS.md
+SETUP_QUESTIONNAIRE.md
