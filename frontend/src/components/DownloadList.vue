@@ -21,6 +21,19 @@
           <path d="M8 2v9m0 0L5 8m3 3 3-3M3 13h10"/>
         </svg>
       </a>
+      <button
+        v-if="item.filename"
+        class="btn-share"
+        :class="{ disabled: fileExists[item.filename] === false }"
+        :disabled="fileExists[item.filename] === false"
+        @click="handleShare(item)"
+        title="Поделиться"
+      >
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="4" r="2"/><circle cx="4" cy="8" r="2"/><circle cx="12" cy="12" r="2"/>
+          <path d="M6 7l4-2M6 9l4 2"/>
+        </svg>
+      </button>
       <button class="btn-delete" @click="handleDelete(item)" title="Удалить">
         <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
           <path d="M3 3l8 8M11 3l-8 8"/>
@@ -32,20 +45,25 @@
       <span class="error-banner-text">{{ error }}</span>
       <button class="error-banner-close" @click="error = ''" aria-label="Закрыть">✕</button>
     </div>
+    <div v-if="copied" class="toast">
+      Ссылка скопирована
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { downloadVideo, deleteTask } from '../api.js'
 
 const emit = defineEmits(['download-started', 'download-deleted'])
 
-defineProps({
+const props = defineProps({
   downloads: { type: Array, default: () => [] },
 })
 
 const error = ref('')
+const copied = ref(false)
+const fileExists = ref({})
 
 function formatDuration(seconds) {
   const m = Math.floor(seconds / 60)
@@ -78,17 +96,28 @@ async function handleClick(item) {
       document.body.removeChild(a)
       return
     }
-  } catch {
-    // file missing, re-download
-  }
-  try {
-    const task = await downloadVideo(item.url, {
-      mode: item.mode || 'video',
-      quality: item.quality || 'best',
-    })
-    emit('download-started', task)
+    if (res.status === 404) {
+      fileExists.value[item.filename] = false
+      const action = confirm('Видео было удалено с сервера.\n\nСкачать заново или удалить запись из истории?')
+      if (action) {
+        try {
+          const task = await downloadVideo(item.url, {
+            mode: item.mode || 'video',
+            quality: item.quality || 'best',
+          })
+          emit('download-started', task)
+        } catch (e) {
+          error.value = e.message || 'Не удалось начать повторное скачивание'
+        }
+      } else {
+        await handleDelete(item)
+      }
+      return
+    }
+    error.value = `Ошибка сервера: ${res.status}`
+    return
   } catch (e) {
-    error.value = e.message || 'Не удалось начать повторное скачивание'
+    error.value = 'Не удалось проверить файл на сервере'
   }
 }
 
@@ -101,6 +130,56 @@ async function handleDelete(item) {
     error.value = e.message || 'Не удалось удалить задачу'
   }
 }
+
+async function handleShare(item) {
+  if (!item.filename) return
+  
+  try {
+    const res = await fetch(downloadUrl(item), { method: 'HEAD' })
+    if (!res.ok) {
+      fileExists.value[item.filename] = false
+      error.value = 'Файл не найден на сервере'
+      return
+    }
+  } catch {
+    error.value = 'Не удалось проверить файл на сервере'
+    return
+  }
+  
+  try {
+    await navigator.clipboard.writeText(downloadUrl(item))
+    copied.value = true
+    setTimeout(() => copied.value = false, 2000)
+  } catch {
+    error.value = 'Не удалось скопировать ссылку'
+  }
+}
+
+let checkTimeout = null
+
+function scheduleCheckAllFiles() {
+  if (checkTimeout) clearTimeout(checkTimeout)
+  checkTimeout = setTimeout(checkAllFiles, 500)
+}
+
+async function checkFileExists(item) {
+  if (!item.filename) return
+  try {
+    const res = await fetch(downloadUrl(item), { method: 'HEAD' })
+    fileExists.value[item.filename] = res.ok
+  } catch {
+    fileExists.value[item.filename] = false
+  }
+}
+
+async function checkAllFiles() {
+  const promises = props.downloads.map(item => checkFileExists(item))
+  await Promise.all(promises)
+}
+
+onMounted(checkAllFiles)
+
+watch(() => props.downloads, scheduleCheckAllFiles, { deep: true })
 </script>
 
 <style scoped>
@@ -201,5 +280,56 @@ h2 {
 .btn-delete:hover {
   background: var(--red-soft-bg);
   color: var(--red-alert);
+}
+
+.btn-share {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  color: var(--text-muted);
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 150ms ease-out, color 150ms ease-out;
+}
+
+.btn-share:hover {
+  background: var(--blue-soft-bg);
+  color: var(--blue-info);
+}
+
+.btn-share.disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.btn-share.disabled:hover {
+  background: transparent;
+  color: var(--text-muted);
+}
+
+.toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--bg-card);
+  color: var(--text-main);
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-sm);
+  font: var(--p-xs);
+  z-index: 1000;
+  animation: fadeInOut 2s ease-in-out;
+}
+
+@keyframes fadeInOut {
+  0% { opacity: 0; transform: translateX(-50%) translateY(8px); }
+  15% { opacity: 1; transform: translateX(-50%) translateY(0); }
+  85% { opacity: 1; }
+  100% { opacity: 0; }
 }
 </style>
