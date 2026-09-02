@@ -1,12 +1,14 @@
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 from src.api.routes import router
 from src.core.config import settings
 from src.core.database import engine
+from src.core.exceptions import AppError
 from src.core.middleware import APIKeyMiddleware
 from src.models.download import Base
 
@@ -19,6 +21,15 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
 
 app = FastAPI(title="Video Downloader", version="0.1.0", lifespan=lifespan)
+
+
+@app.exception_handler(AppError)
+async def app_error_handler(request: Request, exc: AppError) -> JSONResponse:
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"error": exc.message, "detail": exc.message, "code": exc.code},
+    )
+
 
 cors_origins = [o.strip() for o in settings.cors_origins.split(",")]
 app.add_middleware(

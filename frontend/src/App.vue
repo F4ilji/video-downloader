@@ -310,4 +310,55 @@ header p {
 .toggle-track.active:active .toggle-thumb {
   transform: translateX(16px);
 }
+
+.error-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-sm);
+  margin-top: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  background: var(--red-soft-bg);
+  border: 1px solid var(--red-alert);
+  border-radius: var(--radius-sm);
+  font: var(--p-sm);
+  color: var(--red-alert);
+  animation: error-in 200ms ease-out;
+}
+
+.error-banner-icon {
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.error-banner-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.error-banner-close {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  color: var(--red-alert);
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+  opacity: 0.6;
+  transition: opacity 150ms;
+}
+
+.error-banner-close:hover {
+  opacity: 1;
+}
+
+@keyframes error-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
 </style>

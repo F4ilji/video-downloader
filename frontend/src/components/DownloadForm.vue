@@ -9,7 +9,11 @@
         required
       />
     </form>
-    <p v-if="error" class="error">{{ error }}</p>
+    <div v-if="error" class="error-banner">
+      <span class="error-banner-icon">⚠️</span>
+      <span class="error-banner-text">{{ error }}</span>
+      <button class="error-banner-close" @click="error = ''" aria-label="Закрыть">✕</button>
+    </div>
 
     <div v-if="loading && !videoInfo" class="preview skeleton">
       <div class="skeleton-thumb"></div>
@@ -171,12 +175,6 @@ input[type="url"].warning {
 
 input[type="url"].warning:focus {
   box-shadow: 0 0 0 3px var(--yellow-focus);
-}
-
-.error {
-  margin-top: var(--space-sm);
-  color: var(--red-alert);
-  font: var(--p-xs);
 }
 
 .preview {

@@ -5,16 +5,17 @@ from collections.abc import AsyncGenerator
 from pathlib import Path
 
 import redis.asyncio as aioredis
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from fastapi.responses import FileResponse, StreamingResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.config import settings
 from src.core.database import get_db
+from src.core.exceptions import DownloadError, ResourceNotFoundError, TaskNotFoundError, UrlValidationError
 from src.core.utils import sanitize_filename
 from src.models.download import DownloadTask
-from src.schemas.download import DownloadMode, DownloadRequest, DownloadResponse, TaskStatus, VideoQuality
+from src.schemas.download import DownloadRequest, DownloadResponse, TaskStatus
 from src.services.downloader import extract_info
 
 router = APIRouter()
@@ -34,11 +35,11 @@ async def get_video_info(url: str) -> dict:
     from urllib.parse import urlparse
     parsed = urlparse(url)
     if parsed.scheme not in ("http", "https") or not parsed.netloc:
-        raise HTTPException(status_code=400, detail="Invalid URL")
+        raise UrlValidationError()
     try:
         info = await asyncio.to_thread(extract_info, url)
     except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Failed to extract info: {e}") from e
+        raise DownloadError() from e
     return {
         "title": info.get("title"),
         "thumbnail": info.get("thumbnail"),
@@ -57,7 +58,7 @@ async def create_download(
     try:
         info = await asyncio.to_thread(extract_info, url)
     except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Failed to extract info: {e}") from e
+        raise DownloadError() from e
 
     title = sanitize_filename(info.get("title", "unknown"))
 
@@ -134,7 +135,7 @@ async def get_task_status(
 ) -> TaskStatus:
     result = await db.get(DownloadTask, task_id)
     if not result:
-        raise HTTPException(status_code=404, detail="Task not found")
+        raise TaskNotFoundError(str(task_id))
 
     key = f"task:{task_id}:progress"
     data = await redis_client.hgetall(key)
@@ -197,6 +198,7 @@ async def _sse_generator(task_id: uuid.UUID) -> AsyncGenerator[str, None]:
 
 async def _get_task_from_db(task_id: uuid.UUID) -> dict | None:
     from sqlalchemy import select
+
     from src.core.database import async_session
     async with async_session() as session:
         result = await session.execute(
@@ -231,7 +233,7 @@ async def task_progress_sse(task_id: uuid.UUID) -> StreamingResponse:
 async def serve_file(filename: str):
     file_path = Path(settings.downloads_path) / filename
     if not file_path.exists():
-        raise HTTPException(status_code=404, detail="File not found")
+        raise ResourceNotFoundError(filename)
     return FileResponse(
         path=file_path,
         media_type="video/mp4",
@@ -265,7 +267,7 @@ async def delete_task(
     )
     task = result.scalar_one_or_none()
     if not task:
-        raise HTTPException(status_code=404, detail="Task not found")
+        raise TaskNotFoundError(str(task_id))
 
     key = f"task:{task_id}:progress"
     await redis_client.delete(key)

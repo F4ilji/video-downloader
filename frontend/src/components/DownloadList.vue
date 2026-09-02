@@ -27,10 +27,16 @@
         </svg>
       </button>
     </div>
+    <div v-if="error" class="error-banner">
+      <span class="error-banner-icon">⚠️</span>
+      <span class="error-banner-text">{{ error }}</span>
+      <button class="error-banner-close" @click="error = ''" aria-label="Закрыть">✕</button>
+    </div>
   </div>
 </template>
 
 <script setup>
+import { ref } from 'vue'
 import { downloadVideo, deleteTask } from '../api.js'
 
 const emit = defineEmits(['download-started', 'download-deleted'])
@@ -38,6 +44,8 @@ const emit = defineEmits(['download-started', 'download-deleted'])
 defineProps({
   downloads: { type: Array, default: () => [] },
 })
+
+const error = ref('')
 
 function formatDuration(seconds) {
   const m = Math.floor(seconds / 60)
@@ -80,7 +88,7 @@ async function handleClick(item) {
     })
     emit('download-started', task)
   } catch (e) {
-    console.error('Re-download failed:', e)
+    error.value = e.message || 'Не удалось начать повторное скачивание'
   }
 }
 
@@ -90,7 +98,7 @@ async function handleDelete(item) {
     await deleteTask(item.task_id)
     emit('download-deleted', item.task_id)
   } catch (e) {
-    console.error('Delete failed:', e)
+    error.value = e.message || 'Не удалось удалить задачу'
   }
 }
 </script>

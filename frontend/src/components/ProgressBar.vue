@@ -23,7 +23,11 @@
       </a>
     </div>
 
-    <p v-if="error" class="error">{{ error }}</p>
+    <div v-if="error" class="error-banner">
+      <span class="error-banner-icon">⚠️</span>
+      <span class="error-banner-text">{{ error }}</span>
+      <button class="error-banner-close" @click="error = ''" aria-label="Закрыть">✕</button>
+    </div>
   </div>
 </template>
 
@@ -173,7 +177,7 @@ onMounted(async () => {
     evtSource.value = streamProgress(
       props.task.task_id,
       handleSseData,
-      () => {}
+      () => { error.value = 'Соединение с сервером прервано' }
     )
   } catch (e) {
     error.value = e.message
@@ -330,11 +334,5 @@ onUnmounted(() => {
 .download-link:hover {
   background: var(--blue-info);
   color: hsl(0, 0%, 100%);
-}
-
-.error {
-  margin-top: var(--space-sm);
-  color: var(--red-alert);
-  font: var(--p-xs);
 }
 </style>
