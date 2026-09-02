@@ -147,7 +147,8 @@ async function handleShare(item) {
   }
   
   try {
-    await navigator.clipboard.writeText(downloadUrl(item))
+    const fullUrl = window.location.origin + downloadUrl(item)
+    await navigator.clipboard.writeText(fullUrl)
     copied.value = true
     setTimeout(() => copied.value = false, 2000)
   } catch {
